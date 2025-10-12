@@ -22,7 +22,7 @@ const props = defineProps<{
     <Card>
       <CardHeader class="text-center">
         <CardTitle class="text-xl">
-          Welcome back
+          Welcome back to FarmTrack!
         </CardTitle>
         <CardDescription>
           Login with your Apple or Google account
