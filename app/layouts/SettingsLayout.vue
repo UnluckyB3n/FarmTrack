@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Separator } from '@/registry/new-york/ui/separator'
-import SidebarNav from '../components/SidebarNav.vue'
+import { Separator } from '~/components/ui/separator'
+import SidebarNav from '../components/Settings/SidebarNav.vue'
 </script>
 
 <template>

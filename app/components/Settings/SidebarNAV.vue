@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { useRoute } from 'vitepress'
 import { cn } from '@/lib/utils'
-import { Button } from '@/registry/new-york/ui/button'
+import { Button } from '~/components/ui/button'
 
 interface Item {
   title: string
@@ -13,23 +12,23 @@ const $route = useRoute()
 const sidebarNavItems: Item[] = [
   {
     title: 'Profile',
-    href: '/examples/forms',
+    href: '/settings/forms',
   },
   {
     title: 'Account',
-    href: '/examples/forms/account',
+    href: '/settings/account',
   },
   {
     title: 'Appearance',
-    href: '/examples/forms/appearance',
+    href: '/settings/appearance',
   },
   {
     title: 'Notifications',
-    href: '/examples/forms/notifications',
+    href: '/settings/notifications',
   },
   {
     title: 'Display',
-    href: '/examples/forms/display',
+    href: '/settings/display',
   },
 ]
 </script>
