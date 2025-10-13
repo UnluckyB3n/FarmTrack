@@ -11,9 +11,10 @@ export default defineNuxtConfig({
     '@sidebase/nuxt-auth'
   ],
   auth: {
-    baseURL: 'http://localhost:3000/api/auth',
+    baseURL: '/api/auth',
     provider: {
       type: 'authjs',
+      origin: process.env.NUXT_NEXTAUTH_URL || 'http://localhost:3000',
       trustHost: false,
       defaultProvider: 'google',
       addDefaultCallbackUrl: true
@@ -22,7 +23,7 @@ export default defineNuxtConfig({
       enablePeriodically: true,
       enableOnWindowFocus: true,
     },
-    globalAppMiddleware: true
+    globalAppMiddleware: false
   },
   pinia: {
     storesDirs: ['./stores/**', './custom-folder/stores/**'],
@@ -42,8 +43,17 @@ export default defineNuxtConfig({
     classSuffix: ''
   },
    runtimeConfig: {
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    // Add other environment variables here
-  },
+    // PRIVATE (SERVER-ONLY) KEYS: Secrets, IDs, and API keys must go here.
+    private: {
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    },
+    // PUBLIC (CLIENT & SERVER) KEYS: The URL needed for the OAuth redirect fix MUST go here.
+    public: {
+      // CRITICAL FIX: The full URL (e.g., 'http://localhost:3000') must be public.
+      NUXT_NEXTAUTH_URL: process.env.NUXT_NEXTAUTH_URL || 'http://localhost:3000',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    }
+  }
 })
