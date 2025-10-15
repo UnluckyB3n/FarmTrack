@@ -9,8 +9,8 @@ import RadixIconsCalendar from '~icons/radix-icons/calendar'
 
 import { cn } from '@/lib/utils'
 
-import { Button } from '@/registry/new-york/ui/button'
-import { Calendar } from '@/registry/new-york/ui/calendar'
+import { Button } from '~/components/ui/button'
+import { Calendar } from '~/components/ui/calendar'
 import {
   Command,
   CommandEmpty,
@@ -18,16 +18,16 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/registry/new-york/ui/command'
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/registry/new-york/ui/form'
-import { Input } from '@/registry/new-york/ui/input'
+} from '~/components/ui/command'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
+import { Input } from '~/components/ui/input'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/registry/new-york/ui/popover'
-import { Separator } from '@/registry/new-york/ui/separator'
-import { toast } from '@/registry/new-york/ui/toast'
+} from '~/components/ui/popover'
+import { Separator } from '~/components/ui/separator'
+import { toast } from '~/components/ui/toast'
 
 const open = ref(false)
 const dateValue = ref()

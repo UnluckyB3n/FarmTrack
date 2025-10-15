@@ -53,7 +53,8 @@ export default defineNuxtConfig({
     public: {
       // CRITICAL FIX: The full URL (e.g., 'http://localhost:3000') must be public.
       NUXT_NEXTAUTH_URL: process.env.NUXT_NEXTAUTH_URL || 'http://localhost:3000',
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000'
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
     }
   }
 })

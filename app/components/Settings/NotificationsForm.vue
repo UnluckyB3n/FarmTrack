@@ -4,13 +4,13 @@ import { useForm } from 'vee-validate'
 import { h } from 'vue'
 import * as z from 'zod'
 
-import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/registry/default/ui/form'
-import { Button } from '@/registry/new-york/ui/button'
-import { Checkbox } from '@/registry/new-york/ui/checkbox'
-import { RadioGroup, RadioGroupItem } from '@/registry/new-york/ui/radio-group'
-import { Separator } from '@/registry/new-york/ui/separator'
-import { Switch } from '@/registry/new-york/ui/switch'
-import { toast } from '@/registry/new-york/ui/toast'
+import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
+import { Button } from '~/components/ui/button'
+import { Checkbox } from '~/components/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
+import { Separator } from '~/components/ui/separator'
+import { Switch } from '~/components/ui/switch'
+import { toast } from '~/components/ui/toast'
 
 const notificationsFormSchema = toTypedSchema(z.object({
   type: z.enum(['all', 'mentions', 'none'], {
