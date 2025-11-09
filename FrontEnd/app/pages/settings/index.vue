@@ -1,11 +1,11 @@
 <template>
   <SettingsLayout>
-    <AppearanceForm />
+    <ProfileForm />
   </SettingsLayout>
 </template>
 
 <script setup lang="ts">
-import AppearanceForm from '~/components/Settings/AppearanceForm.vue'
+import ProfileForm from '~/components/Settings/ProfileForm.vue'
 import SettingsLayout from '~/layouts/SettingsLayout.vue'
 
 definePageMeta({

@@ -4,6 +4,9 @@ Run with: python -m app.db.seed_data
 """
 from datetime import datetime, timedelta
 import random
+import csv
+import os
+from pathlib import Path
 from app.db.session import SessionLocal
 from app.db.models import User, Facility, Animal, AnimalBreed, Event
 from app.core.security import get_password_hash
@@ -70,41 +73,72 @@ def seed_facilities(db):
     return facilities
 
 def seed_animal_breeds(db):
-    """Create sample animal breeds"""
-    breeds_data = [
-        {"country": "United States", "iso3": "USA", "specie": "Cattle", "breed_name": "Angus", "language": "English", 
-         "description": "Black beef cattle breed known for marbling quality"},
-        {"country": "United States", "iso3": "USA", "specie": "Cattle", "breed_name": "Hereford", "language": "English",
-         "description": "Red cattle with white face, hardy and efficient"},
-        {"country": "Switzerland", "iso3": "CHE", "specie": "Cattle", "breed_name": "Holstein", "language": "English",
-         "description": "Black and white dairy cattle, high milk production"},
-        {"country": "United Kingdom", "iso3": "GBR", "specie": "Sheep", "breed_name": "Suffolk", "language": "English",
-         "description": "Large meat sheep with black face and legs"},
-        {"country": "Spain", "iso3": "ESP", "specie": "Sheep", "breed_name": "Merino", "language": "English",
-         "description": "Famous for fine wool production"},
-        {"country": "United Kingdom", "iso3": "GBR", "specie": "Pig", "breed_name": "Yorkshire", "language": "English",
-         "description": "Large white pig, excellent for bacon"},
-        {"country": "United States", "iso3": "USA", "specie": "Pig", "breed_name": "Duroc", "language": "English",
-         "description": "Red pig known for fast growth and meat quality"},
-        {"country": "France", "iso3": "FRA", "specie": "Goat", "breed_name": "Alpine", "language": "English",
-         "description": "Dairy goat breed with high milk production"},
-    ]
+    """Create animal breeds from CSV file"""
+    # Get the CSV file path (data folder is at app/data)
+    current_dir = Path(__file__).parent.parent  # Go up to app/ directory
+    csv_path = current_dir / "data" / "animal_breeds.csv"
+    
+    if not csv_path.exists():
+        print(f"Warning: CSV file not found at {csv_path}")
+        print("Skipping breed seeding...")
+        return []
     
     breeds = []
-    for data in breeds_data:
-        existing = db.query(AnimalBreed).filter(
-            AnimalBreed.breed_name == data["breed_name"],
-            AnimalBreed.specie == data["specie"]
-        ).first()
-        if not existing:
-            breed = AnimalBreed(**data)
-            db.add(breed)
-            breeds.append(breed)
-            print(f"Created breed: {data['breed_name']}")
-        else:
-            breeds.append(existing)
+    breeds_added = 0
+    breeds_skipped = 0
     
+    print(f"Loading breeds from: {csv_path}")
+    
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as file:
+            csv_reader = csv.DictReader(file)
+            
+            for row in csv_reader:
+                # Map CSV columns to database fields
+                breed_data = {
+                    "country": row.get("Country", "").strip(),
+                    "iso3": row.get("ISO3", "").strip(),
+                    "specie": row.get("Specie", "").strip(),
+                    "breed_name": row.get("Breed/Most common name", "").strip(),
+                    "language": row.get("Language", "").strip(),
+                    "description": row.get("Description", "").strip(),
+                    "transboundary_name": row.get("Transboundary name", "").strip(),
+                    "other_name": row.get("Other name", "").strip()
+                }
+                
+                # Skip if essential fields are missing
+                if not breed_data["breed_name"] or not breed_data["specie"]:
+                    continue
+                
+                # Check if breed already exists
+                existing = db.query(AnimalBreed).filter(
+                    AnimalBreed.breed_name == breed_data["breed_name"],
+                    AnimalBreed.specie == breed_data["specie"],
+                    AnimalBreed.country == breed_data["country"]
+                ).first()
+                
+                if not existing:
+                    breed = AnimalBreed(**breed_data)
+                    db.add(breed)
+                    breeds.append(breed)
+                    breeds_added += 1
+                    
+                    # Commit in batches of 100 to improve performance
+                    if breeds_added % 100 == 0:
+                        db.commit()
+                        print(f"  Processed {breeds_added} breeds...")
+                else:
+                    breeds.append(existing)
+                    breeds_skipped += 1
+    
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
+        db.rollback()
+        return []
+    
+    # Final commit
     db.commit()
+    print(f"Breed seeding complete: {breeds_added} added, {breeds_skipped} skipped")
     return breeds
 
 def seed_animals(db, facilities, users):

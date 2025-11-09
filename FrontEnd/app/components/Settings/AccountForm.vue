@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { CalendarDate, DateFormatter, getLocalTimeZone, today } from '@internationalized/date'
 import { toTypedSchema } from '@vee-validate/zod'
-import { Check, ChevronsUpDown } from 'lucide-vue-next'
+import { Check, ChevronsUpDown, Calendar as CalendarIcon } from 'lucide-vue-next'
 import { toDate } from 'reka-ui/date'
 import { h, ref } from 'vue'
 import * as z from 'zod'
-import RadixIconsCalendar from '~icons/radix-icons/calendar'
+import { toast } from 'vue-sonner'
 
 import { cn } from '@/lib/utils'
 
@@ -27,7 +27,6 @@ import {
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
-import { toast } from '~/components/ui/toast'
 
 const open = ref(false)
 const dateValue = ref()
@@ -67,9 +66,8 @@ const accountFormSchema = toTypedSchema(z.object({
 // https://github.com/logaretm/vee-validate/issues/3521
 // https://github.com/logaretm/vee-validate/discussions/3571
 async function onSubmit(values: any) {
-  toast({
-    title: 'You submitted the following values:',
-    description: h('pre', { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(values, null, 2))),
+  toast.success('Account settings updated successfully!', {
+    description: JSON.stringify(values, null, 2),
   })
 }
 </script>
@@ -110,7 +108,7 @@ async function onSubmit(values: any) {
                   !value && 'text-muted-foreground',
                 )"
               >
-                <RadixIconsCalendar class="mr-2 h-4 w-4 opacity-50" />
+                <CalendarIcon class="mr-2 h-4 w-4 opacity-50" />
                 <span>{{ value ? df.format(toDate(dateValue, getLocalTimeZone())) : "Pick a date" }}</span>
               </Button>
             </FormControl>

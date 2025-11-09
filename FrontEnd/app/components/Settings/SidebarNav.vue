@@ -12,41 +12,43 @@ const $route = useRoute()
 const sidebarNavItems: Item[] = [
   {
     title: 'Profile',
-    href: '/settings/forms',
+    href: '/settings',
   },
   {
     title: 'Account',
-    href: '/settings/account',
+    href: '/settings/Account',
   },
   {
     title: 'Appearance',
-    href: '/settings/appearance',
+    href: '/settings/Appearance',
   },
   {
     title: 'Notifications',
-    href: '/settings/notifications',
+    href: '/settings/Notifications',
   },
   {
     title: 'Display',
-    href: '/settings/display',
+    href: '/settings/Display',
   },
 ]
 </script>
 
 <template>
   <nav class="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1">
-    <Button
+    <NuxtLink
       v-for="item in sidebarNavItems"
       :key="item.title"
-      as="a"
-      :href="item.href"
-      variant="ghost"
-      :class="cn(
-        'w-full text-left justify-start',
-        $route.path === `${item.href}.html` && 'bg-muted hover:bg-muted',
-      )"
+      :to="item.href"
     >
-      {{ item.title }}
-    </Button>
+      <Button
+        variant="ghost"
+        :class="cn(
+          'w-full text-left justify-start',
+          $route.path === item.href && 'bg-muted hover:bg-muted',
+        )"
+      >
+        {{ item.title }}
+      </Button>
+    </NuxtLink>
   </nav>
 </template>

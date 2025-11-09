@@ -39,11 +39,11 @@ class AnimalBreed(Base):
     country = Column(String(100))
     iso3 = Column(String(3))
     specie = Column(String(100))
-    breed_name = Column(String(150))
+    breed_name = Column(String(200))
     language = Column(String(50))
     description = Column(Text)
-    transboundary_name = Column(String(150))
-    other_name = Column(String(150))
+    transboundary_name = Column(String(200))
+    other_name = Column(String(500))  # Increased to handle longer alternative names
 
 class Event(Base):
     __tablename__ = "events"

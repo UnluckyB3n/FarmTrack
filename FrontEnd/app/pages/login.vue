@@ -19,4 +19,9 @@ export const description = "A login page with a muted background color."
 <script setup lang="ts">
 import { GalleryVerticalEnd } from "lucide-vue-next"
 import LoginForm from '@/components/LoginForm.vue'
+
+// Disable layout for login page - it should be standalone
+definePageMeta({
+  layout: false,
+})
 </script>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
 import { FieldArray, useForm } from 'vee-validate'
-import { h, ref } from 'vue'
+import { toast } from 'vue-sonner'
+import { ref } from 'vue'
 import * as z from 'zod'
 import { cn } from '@/lib/utils'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
@@ -18,7 +19,6 @@ import {
 } from '~/components/ui/select'
 import { Separator } from '~/components/ui/separator'
 import { Textarea } from '~/components/ui/textarea'
-import { Sonner } from '~/components/ui/sonner'
 
 const verifiedEmails = ref(['m@example.com', 'm@google.com', 'm@support.com'])
 
@@ -58,9 +58,8 @@ const { handleSubmit, resetForm } = useForm({
 })
 
 const onSubmit = handleSubmit((values) => {
-  toast({
-    title: 'You submitted the following values:',
-    description: h('pre', { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(values, null, 2))),
+  toast.success('Profile updated successfully!', {
+    description: JSON.stringify(values, null, 2),
   })
 })
 </script>

@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import routes_auth, routes_events, routes_facilities, routes_users, routes_animals, routes_dashboard
 from app.db.init_db import init_db
 
@@ -6,6 +7,20 @@ app = FastAPI(
     title="Farm Traceability System",
     description="Trace animal and product lifecycle events with plausibility validation.",
     version="1.0.0",
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost",
+        "http://127.0.0.1"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Initialize database tables on startup

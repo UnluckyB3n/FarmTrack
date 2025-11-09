@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
-import { h } from 'vue'
+import { toast } from 'vue-sonner'
 import * as z from 'zod'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Separator } from '~/components/ui/separator'
-//import { Sonner } from '~/components/ui/sonner'
 
 const items = [
   {
@@ -54,11 +53,9 @@ const { handleSubmit } = useForm({
 })
 
 const onSubmit = handleSubmit((values) => {
-  console.log(values)
-  //Sonner({
-  //  title: 'You submitted the following values:',
-  //  description: h('pre', { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(values, null, 2))),
-  //})
+  toast.success('Display settings updated successfully!', {
+    description: JSON.stringify(values, null, 2),
+  })
 })
 </script>
 

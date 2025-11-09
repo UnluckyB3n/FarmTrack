@@ -5,6 +5,10 @@
 </template>
 
 <script setup lang="ts">
-import NotificationsForm from '~/components/Settings/NotificationsForm.vue';
-import SettingsLayout from '~/layouts/SettingsLayout.vue';
+import NotificationsForm from '~/components/Settings/NotificationsForm.vue'
+import SettingsLayout from '~/layouts/SettingsLayout.vue'
+
+definePageMeta({
+  middleware: 'auth'
+})
 </script>
