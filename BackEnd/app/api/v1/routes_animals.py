@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func
+from typing import Optional
 from app.db.session import get_db
-from app.db.models import Animal, AnimalBreed
+from app.db.models import Animal, AnimalBreed, Event, Facility, User
 
 router = APIRouter()
 
@@ -41,8 +43,35 @@ def create_animal(payload: dict, db: Session = Depends(get_db)):
     }
 
 @router.get("/")
-def list_animals(db: Session = Depends(get_db)):
-    animals = db.query(Animal).all()
+def list_animals(
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    species: Optional[str] = None,
+    facility_id: Optional[int] = None,
+    owner_id: Optional[int] = None,
+    search: Optional[str] = None
+):
+    """List animals with optional filtering, search, and pagination"""
+    query = db.query(Animal)
+    
+    if species:
+        query = query.filter(Animal.species.ilike(f"%{species}%"))
+    if facility_id:
+        query = query.filter(Animal.facility_id == facility_id)
+    if owner_id:
+        query = query.filter(Animal.owner_id == owner_id)
+    if search:
+        query = query.filter(
+            or_(
+                Animal.name.ilike(f"%{search}%"),
+                Animal.tag_id.ilike(f"%{search}%")
+            )
+        )
+    
+    total = query.count()
+    animals = query.offset(skip).limit(limit).all()
+    
     result = []
     for a in animals:
         result.append({
@@ -50,11 +79,11 @@ def list_animals(db: Session = Depends(get_db)):
             "name": a.name,
             "species": a.species,
             "tag_id": a.tag_id,
-            "date_added": a.date_added,
+            "date_added": str(a.date_added) if a.date_added else None,
             "facility_id": a.facility_id,
             "owner_id": a.owner_id
         })
-    return {"animals": result}
+    return {"animals": result, "total": total, "skip": skip, "limit": limit}
 
 @router.get("/{animal_id}")
 def get_animal(animal_id: int, db: Session = Depends(get_db)):
@@ -152,4 +181,59 @@ def get_animal_breed(breed_id: int, db: Session = Depends(get_db)):
         "description": breed.description,
         "transboundary_name": breed.transboundary_name,
         "other_name": breed.other_name
+    }
+
+@router.get("/species/")
+def list_species(db: Session = Depends(get_db)):
+    """Get distinct list of all animal species"""
+    species = db.query(Animal.species).distinct().all()
+    return {"species": [s[0] for s in species if s[0]]}
+
+@router.get("/stats/")
+def get_animal_statistics(db: Session = Depends(get_db)):
+    """Get overall animal statistics"""
+    total_animals = db.query(func.count(Animal.id)).scalar()
+    by_species = db.query(Animal.species, func.count(Animal.id)).group_by(Animal.species).all()
+    by_facility = db.query(
+        Facility.name,
+        func.count(Animal.id)
+    ).join(Animal, Animal.facility_id == Facility.id).group_by(Facility.name).all()
+    
+    return {
+        "total_animals": total_animals,
+        "by_species": [{"species": s, "count": c} for s, c in by_species],
+        "by_facility": [{"facility": f, "count": c} for f, c in by_facility]
+    }
+
+@router.get("/{animal_id}/events")
+def get_animal_events(animal_id: int, db: Session = Depends(get_db)):
+    """Get all events related to a specific animal"""
+    animal = db.query(Animal).filter(Animal.id == animal_id).first()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    
+    events = db.query(Event).filter(Event.animal_id == animal_id).order_by(Event.timestamp.desc()).all()
+    
+    result = []
+    for e in events:
+        result.append({
+            "id": e.id,
+            "event_type": e.event_type,
+            "timestamp": str(e.timestamp),
+            "is_valid": e.is_valid,
+            "anomaly_reason": e.anomaly_reason,
+            "actor_id": e.actor_id,
+            "facility_id": e.facility_id,
+            "metadata": e.event_metadata
+        })
+    
+    return {
+        "animal": {
+            "id": animal.id,
+            "name": animal.name,
+            "species": animal.species,
+            "tag_id": animal.tag_id
+        },
+        "events": result,
+        "total_events": len(result)
     }       
