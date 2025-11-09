@@ -9,6 +9,23 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     password_hash = Column(String)
     role = Column(String)  # farmer, processor, regulator
+    
+    # Profile settings
+    email = Column(String, unique=True, nullable=True)
+    full_name = Column(String, nullable=True)
+    bio = Column(Text, nullable=True)
+    
+    # Account settings
+    date_of_birth = Column(String, nullable=True)
+    language = Column(String, default='en')
+    
+    # Notification settings
+    marketing_emails = Column(Boolean, default=True)
+    social_emails = Column(Boolean, default=True)
+    security_emails = Column(Boolean, default=True)
+    communication_emails = Column(Boolean, default=False)
+    mobile_notifications = Column(Boolean, default=False)
+    
     animals = relationship("Animal", back_populates="owner", cascade="all, delete-orphan")
 
 class Facility(Base):

@@ -109,5 +109,14 @@ export const useApi = () => {
     // Breeds
     getBreeds: () => apiFetch('/animals/breeds/'),
     getBreed: (id: number) => apiFetch(`/animals/breeds/${id}`),
+
+    // Settings
+    getProfile: (username: string) => apiFetch(`/settings/profile?username=${username}`),
+    updateProfile: (username: string, data: any) => apiFetch(`/settings/profile?username=${username}`, { method: 'PUT', body: data }),
+    getAccount: (username: string) => apiFetch(`/settings/account?username=${username}`),
+    updateAccount: (username: string, data: any) => apiFetch(`/settings/account?username=${username}`, { method: 'PUT', body: data }),
+    getNotifications: (username: string) => apiFetch(`/settings/notifications?username=${username}`),
+    updateNotifications: (username: string, data: any) => apiFetch(`/settings/notifications?username=${username}`, { method: 'PUT', body: data }),
+    changePassword: (username: string, data: any) => apiFetch(`/settings/password?username=${username}`, { method: 'POST', body: data }),
   }
 }

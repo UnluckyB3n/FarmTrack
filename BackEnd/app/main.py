@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import routes_auth, routes_events, routes_facilities, routes_users, routes_animals, routes_dashboard
+from app.api.v1 import routes_auth, routes_events, routes_facilities, routes_users, routes_animals, routes_dashboard, routes_settings
 from app.db.init_db import init_db
 
 app = FastAPI(
@@ -35,6 +35,7 @@ app.include_router(routes_events.router, prefix="/api/v1/events", tags=["Events"
 app.include_router(routes_users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(routes_animals.router, prefix="/api/v1/animals", tags=["Animals"])
 app.include_router(routes_dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
+app.include_router(routes_settings.router, prefix="/api/v1/settings", tags=["Settings"])
 
 @app.get("/")
 def root():
