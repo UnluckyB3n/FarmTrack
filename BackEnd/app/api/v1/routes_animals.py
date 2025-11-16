@@ -95,7 +95,7 @@ def get_animal_statistics(db: Session = Depends(get_db)):
 
 @router.post("/", status_code=201)
 def create_animal(payload: dict, db: Session = Depends(get_db)):
-    """Create a new animal. Expects keys: name, species, tag_id, date_added, facility_id, owner_id"""
+    """Create a new animal. Expects keys: name, species, breed_id, tag_id, date_added, facility_id, owner_id"""
     name = payload.get("name")
     species = payload.get("species")
     if not name or not species:
@@ -104,6 +104,7 @@ def create_animal(payload: dict, db: Session = Depends(get_db)):
     animal = Animal(
         name=name,
         species=species,
+        breed_id=payload.get("breed_id"),
         tag_id=payload.get("tag_id"),
         date_added=payload.get("date_added"),
         facility_id=payload.get("facility_id"),
@@ -174,14 +175,48 @@ def get_animal(animal_id: int, db: Session = Depends(get_db)):
     animal = db.query(Animal).filter(Animal.id == animal_id).first()
     if not animal:
         raise HTTPException(status_code=404, detail="Animal not found")
+    
+    # Build breed data if available
+    breed_data = None
+    if animal.breed_id and animal.breed:
+        breed_data = {
+            "id": animal.breed.id,
+            "name": animal.breed.breed_name,
+            "code": animal.breed.iso3,
+            "country": animal.breed.country,
+            "description": animal.breed.description
+        }
+    
+    # Build facility data if available
+    facility_data = None
+    if animal.facility_id and animal.facility:
+        facility_data = {
+            "id": animal.facility.id,
+            "name": animal.facility.name,
+            "facility_type": animal.facility.facility_type,
+            "location": animal.facility.location
+        }
+    
+    # Build owner data if available
+    owner_data = None
+    if animal.owner_id and animal.owner:
+        owner_data = {
+            "id": animal.owner.id,
+            "username": animal.owner.username
+        }
+    
     return {
         "id": animal.id,
         "name": animal.name,
         "species": animal.species,
+        "breed_id": animal.breed_id,
+        "breed": breed_data,
         "tag_id": animal.tag_id,
-        "date_added": animal.date_added,
+        "date_added": str(animal.date_added) if animal.date_added else None,
         "facility_id": animal.facility_id,
-        "owner_id": animal.owner_id
+        "facility": facility_data,
+        "owner_id": animal.owner_id,
+        "owner": owner_data
     }
 
 @router.put("/{animal_id}")
@@ -194,6 +229,8 @@ def update_animal(animal_id: int, payload: dict, db: Session = Depends(get_db)):
         animal.name = payload.get("name")
     if "species" in payload:
         animal.species = payload.get("species")
+    if "breed_id" in payload:
+        animal.breed_id = payload.get("breed_id")
     if "tag_id" in payload:
         animal.tag_id = payload.get("tag_id")
     if "date_added" in payload:
@@ -213,8 +250,9 @@ def update_animal(animal_id: int, payload: dict, db: Session = Depends(get_db)):
             "id": animal.id,
             "name": animal.name,
             "species": animal.species,
+            "breed_id": animal.breed_id,
             "tag_id": animal.tag_id,
-            "date_added": animal.date_added,
+            "date_added": str(animal.date_added) if animal.date_added else None,
             "facility_id": animal.facility_id,
             "owner_id": animal.owner_id
         }

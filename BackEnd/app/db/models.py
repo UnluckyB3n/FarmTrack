@@ -40,6 +40,7 @@ class Animal(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     species = Column(String, nullable=False)
+    breed_id = Column(Integer, ForeignKey("animal_breeds.id"), nullable=True)
     tag_id = Column(String, unique=True)
     date_added = Column(DateTime)
     facility_id = Column(Integer, ForeignKey("facilities.id"))
@@ -47,6 +48,7 @@ class Animal(Base):
 
     facility = relationship("Facility")
     owner = relationship("User", back_populates="animals")
+    breed = relationship("AnimalBreed")
     events = relationship("Event", back_populates="animal", cascade="all, delete-orphan")
 
 class AnimalBreed(Base):

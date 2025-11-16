@@ -44,6 +44,18 @@ export const useApi = () => {
     getAnimalSpecies: () => apiFetch('/animals/species/'),
     getAnimalStats: () => apiFetch('/animals/stats/'),
 
+    // Breeds
+    getBreedSpecies: () => apiFetch('/breeds/species'),
+    getBreeds: (params: any = {}) => {
+      const query = new URLSearchParams(params).toString()
+      return apiFetch(`/breeds/breeds?${query}`)
+    },
+    getBreedCountries: (species?: string) => {
+      const query = species ? `?species=${species}` : ''
+      return apiFetch(`/breeds/countries${query}`)
+    },
+    getBreedDetails: (id: number) => apiFetch(`/breeds/breeds/${id}`),
+
     // Facilities
     getFacilities: (params: any = {}) => {
       const query = new URLSearchParams(params).toString()
@@ -105,10 +117,6 @@ export const useApi = () => {
         return { data: null, error: errorMessage }
       }
     },
-
-    // Breeds
-    getBreeds: () => apiFetch('/animals/breeds/'),
-    getBreed: (id: number) => apiFetch(`/animals/breeds/${id}`),
 
     // Settings
     getProfile: (username: string) => apiFetch(`/settings/profile?username=${username}`),

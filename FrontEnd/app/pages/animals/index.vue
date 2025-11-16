@@ -120,10 +120,113 @@
         </UiCardContent>
       </UiCard>
     </div>
+
+    <!-- Add Animal Dialog -->
+    <UiDialog v-model:open="showAddDialog">
+      <UiDialogContent class="sm:max-w-[500px]">
+        <UiDialogHeader>
+          <UiDialogTitle>Add New Animal</UiDialogTitle>
+          <UiDialogDescription>
+            Enter the details of the new animal to add to your inventory.
+          </UiDialogDescription>
+        </UiDialogHeader>
+        
+        <div class="grid gap-4 py-4">
+          <div class="grid gap-2">
+            <label class="text-sm font-medium">Name *</label>
+            <UiInput v-model="newAnimal.name" placeholder="Animal name" />
+          </div>
+          
+          <div class="grid gap-2">
+            <label class="text-sm font-medium">Species *</label>
+            <UiSelect v-model="newAnimal.species" @update:model-value="onSpeciesChange">
+              <UiSelectTrigger>
+                <UiSelectValue placeholder="Select species" />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                <UiSelectItem v-for="sp in breedSpecies" :key="sp" :value="sp">
+                  {{ sp }}
+                </UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+          </div>
+          
+          <div v-if="newAnimal.species && breedCountries.length > 0" class="grid gap-2">
+            <label class="text-sm font-medium">Country (Optional)</label>
+            <UiSelect v-model="newAnimal.country" @update:model-value="onCountryChange">
+              <UiSelectTrigger>
+                <UiSelectValue placeholder="All countries" />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                <UiSelectItem value="all">All countries</UiSelectItem>
+                <UiSelectItem v-for="country in breedCountries" :key="country.iso3" :value="country.name">
+                  {{ country.name }}
+                </UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+          </div>
+          
+          <div v-if="newAnimal.species" class="grid gap-2">
+            <label class="text-sm font-medium">Breed (Optional)</label>
+            <UiSelect v-model="newAnimal.breed_id" :disabled="loadingBreeds">
+              <UiSelectTrigger>
+                <UiSelectValue :placeholder="loadingBreeds ? 'Loading breeds...' : 'Select breed'" />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                <div v-if="availableBreeds.length === 0" class="px-3 py-2 text-sm text-muted-foreground">
+                  {{ loadingBreeds ? 'Loading...' : 'No breeds available' }}
+                </div>
+                <UiSelectItem v-for="breed in availableBreeds" :key="breed.id" :value="breed.id.toString()">
+                  {{ breed.breed_name }}
+                </UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+            <p class="text-xs text-muted-foreground">
+              {{ availableBreeds.length }} breed{{ availableBreeds.length !== 1 ? 's' : '' }} available
+            </p>
+          </div>
+          
+          <div class="grid gap-2">
+            <label class="text-sm font-medium">Tag ID</label>
+            <UiInput v-model="newAnimal.tag_id" placeholder="e.g., US123456" />
+          </div>
+          
+          <div class="grid gap-2">
+            <label class="text-sm font-medium">Facility</label>
+            <UiSelect v-model="newAnimal.facility_id">
+              <UiSelectTrigger>
+                <UiSelectValue placeholder="Select facility" />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                <UiSelectItem v-for="facility in facilities" :key="facility.id" :value="facility.id.toString()">
+                  {{ facility.name }}
+                </UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+          </div>
+          
+          <div class="grid gap-2">
+            <label class="text-sm font-medium">Date Added</label>
+            <UiInput v-model="newAnimal.date_added" type="date" />
+          </div>
+        </div>
+        
+        <UiDialogFooter>
+          <UiButton variant="outline" @click="showAddDialog = false">
+            Cancel
+          </UiButton>
+          <UiButton @click="createAnimal" :disabled="creatingAnimal">
+            {{ creatingAnimal ? 'Creating...' : 'Create Animal' }}
+          </UiButton>
+        </UiDialogFooter>
+      </UiDialogContent>
+    </UiDialog>
   </NuxtLayout>
 </template>
 
 <script setup lang="ts">
+import { toast } from 'vue-sonner'
+
 const api = useApi()
 const router = useRouter()
 
@@ -133,10 +236,41 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const loading = ref(false)
 const showAddDialog = ref(false)
+const creatingAnimal = ref(false)
 
 const animals = ref<any[]>([])
 const total = ref(0)
 const speciesList = ref<string[]>([])
+const facilities = ref<any[]>([])
+
+const newAnimal = ref({
+  name: '',
+  species: '',
+  breed_id: '',
+  country: '',
+  tag_id: '',
+  facility_id: '',
+  date_added: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+})
+
+const breedSpecies = ref<string[]>([])
+const breedCountries = ref<any[]>([])
+const availableBreeds = ref<any[]>([])
+const loadingBreeds = ref(false)
+
+const resetNewAnimal = () => {
+  newAnimal.value = {
+    name: '',
+    species: '',
+    breed_id: '',
+    country: '',
+    tag_id: '',
+    facility_id: '',
+    date_added: new Date().toISOString().split('T')[0],
+  }
+  availableBreeds.value = []
+  breedCountries.value = []
+}
 
 const loadAnimals = async () => {
   loading.value = true
@@ -168,6 +302,105 @@ const loadSpecies = async () => {
   }
 }
 
+const loadFacilities = async () => {
+  const result = await api.getFacilities({ limit: 100 })
+  if (result.data?.facilities) {
+    facilities.value = result.data.facilities
+  }
+}
+
+const loadBreedSpecies = async () => {
+  const result = await api.getBreedSpecies()
+  if (result.data?.species) {
+    breedSpecies.value = result.data.species
+  }
+}
+
+const onSpeciesChange = async () => {
+  // Reset breed and country when species changes
+  newAnimal.value.breed_id = ''
+  newAnimal.value.country = ''
+  availableBreeds.value = []
+  breedCountries.value = []
+  
+  if (newAnimal.value.species) {
+    // Load countries for this species
+    const result = await api.getBreedCountries(newAnimal.value.species)
+    if (result.data?.countries) {
+      breedCountries.value = result.data.countries
+    }
+  }
+}
+
+const onCountryChange = async () => {
+  // Reset breed when country changes
+  newAnimal.value.breed_id = ''
+  
+  if (newAnimal.value.species && newAnimal.value.country && newAnimal.value.country !== 'all') {
+    // Load breeds for this species and country
+    loadingBreeds.value = true
+    const result = await api.getBreeds({
+      species: newAnimal.value.species,
+      country: newAnimal.value.country,
+      limit: 200
+    })
+    if (result.data?.breeds) {
+      availableBreeds.value = result.data.breeds
+    }
+    loadingBreeds.value = false
+  } else if (newAnimal.value.species) {
+    // Load all breeds for this species (no country filter)
+    loadingBreeds.value = true
+    const result = await api.getBreeds({
+      species: newAnimal.value.species,
+      limit: 200
+    })
+    if (result.data?.breeds) {
+      availableBreeds.value = result.data.breeds
+    }
+    loadingBreeds.value = false
+  }
+}
+
+const createAnimal = async () => {
+  if (!newAnimal.value.name || !newAnimal.value.species) {
+    toast.error('Please fill in required fields (Name and Species)')
+    return
+  }
+
+  creatingAnimal.value = true
+  
+  try {
+    // Get current user info for owner_id
+    const username = localStorage.getItem('username')
+    
+    const payload = {
+      name: newAnimal.value.name,
+      species: newAnimal.value.species,
+      breed_id: newAnimal.value.breed_id ? parseInt(newAnimal.value.breed_id) : null,
+      tag_id: newAnimal.value.tag_id || null,
+      facility_id: newAnimal.value.facility_id ? parseInt(newAnimal.value.facility_id) : null,
+      date_added: newAnimal.value.date_added || new Date().toISOString(),
+      owner_id: 1 // Default owner for now - should be current user
+    }
+
+    const result = await api.createAnimal(payload)
+    
+    if (result.data) {
+      toast.success('Animal created successfully!')
+      showAddDialog.value = false
+      resetNewAnimal()
+      await loadAnimals() // Refresh the list
+    } else {
+      toast.error('Failed to create animal')
+    }
+  } catch (error: any) {
+    toast.error(error.message || 'Failed to create animal')
+  } finally {
+    creatingAnimal.value = false
+  }
+}
+
 const applyFilters = () => {
   currentPage.value = 1
   loadAnimals()
@@ -195,5 +428,7 @@ const formatDate = (dateString: string) => {
 onMounted(() => {
   loadAnimals()
   loadSpecies()
+  loadFacilities()
+  loadBreedSpecies()
 })
 </script>
