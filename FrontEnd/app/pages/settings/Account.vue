@@ -7,8 +7,4 @@
 <script setup lang="ts">
 import AccountForm from '~/components/Settings/AccountForm.vue'
 import SettingsLayout from '~/layouts/SettingsLayout.vue'
-
-definePageMeta({
-  middleware: 'auth'
-})
 </script>

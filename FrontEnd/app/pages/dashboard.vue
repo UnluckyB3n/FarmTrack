@@ -191,11 +191,6 @@
 </template>
 
 <script setup lang="ts">
-// Apply auth middleware
-definePageMeta({
-  middleware: 'auth'
-})
-
 const api = useApi()
 const loading = ref(false)
 

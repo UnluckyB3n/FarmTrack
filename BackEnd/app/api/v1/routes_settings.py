@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 from app.db.session import get_db
 from app.db.models import User
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, get_current_user
 
 router = APIRouter()
 
@@ -46,7 +46,11 @@ class PasswordChange(BaseModel):
 
 
 @router.get("/profile")
-def get_profile(username: str, db: Session = Depends(get_db)):
+def get_profile(
+    username: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Get user profile settings"""
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -63,7 +67,12 @@ def get_profile(username: str, db: Session = Depends(get_db)):
 
 
 @router.put("/profile")
-def update_profile(username: str, profile: ProfileUpdate, db: Session = Depends(get_db)):
+def update_profile(
+    username: str, 
+    profile: ProfileUpdate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Update user profile settings"""
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -104,7 +113,11 @@ def update_profile(username: str, profile: ProfileUpdate, db: Session = Depends(
 
 
 @router.get("/account")
-def get_account(username: str, db: Session = Depends(get_db)):
+def get_account(
+    username: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Get user account settings"""
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -118,7 +131,12 @@ def get_account(username: str, db: Session = Depends(get_db)):
 
 
 @router.put("/account")
-def update_account(username: str, account: AccountUpdate, db: Session = Depends(get_db)):
+def update_account(
+    username: str, 
+    account: AccountUpdate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Update user account settings"""
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -146,7 +164,11 @@ def update_account(username: str, account: AccountUpdate, db: Session = Depends(
 
 
 @router.get("/notifications")
-def get_notifications(username: str, db: Session = Depends(get_db)):
+def get_notifications(
+    username: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Get user notification settings"""
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -162,7 +184,12 @@ def get_notifications(username: str, db: Session = Depends(get_db)):
 
 
 @router.put("/notifications")
-def update_notifications(username: str, settings: NotificationSettings, db: Session = Depends(get_db)):
+def update_notifications(
+    username: str, 
+    settings: NotificationSettings, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Update user notification settings"""
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -196,7 +223,12 @@ def update_notifications(username: str, settings: NotificationSettings, db: Sess
 
 
 @router.post("/password")
-def change_password(username: str, password_data: PasswordChange, db: Session = Depends(get_db)):
+def change_password(
+    username: str, 
+    password_data: PasswordChange, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Change user password"""
     from app.core.security import verify_password
     

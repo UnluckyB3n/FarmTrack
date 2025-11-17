@@ -8,10 +8,14 @@ export const useApi = () => {
 
   const apiFetch = async (endpoint: string, options: any = {}) => {
     try {
+      // Get auth token from localStorage
+      const token = process.client ? localStorage.getItem('auth_token') : null
+      
       const response = await $fetch(`${baseURL}${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           ...options.headers,
         },
       })
