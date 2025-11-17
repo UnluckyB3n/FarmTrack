@@ -43,6 +43,8 @@ export const useApi = () => {
     getAnimalEvents: (id: number) => apiFetch(`/animals/${id}/events`),
     getAnimalSpecies: () => apiFetch('/animals/species/'),
     getAnimalStats: () => apiFetch('/animals/stats/'),
+    transferAnimal: (id: number, data: any) => apiFetch(`/animals/${id}/transfer`, { method: 'POST', body: data }),
+    getMovementHistory: (id: number) => apiFetch(`/animals/${id}/movement-history`),
 
     // Breeds
     getBreedSpecies: () => apiFetch('/breeds/species'),
@@ -117,6 +119,58 @@ export const useApi = () => {
         return { data: null, error: errorMessage }
       }
     },
+    
+    register: async (data: any) => {
+      try {
+        const response = await $fetch(`${baseURL}/auth/register`, {
+          method: 'POST',
+          body: JSON.stringify(data),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        return { data: response, error: null }
+      } catch (error: any) {
+        console.error('Registration Error:', error)
+        const errorMessage = error?.data?.detail || error?.message || 'Registration failed'
+        return { data: null, error: errorMessage }
+      }
+    },
+    
+    getCurrentUser: () => apiFetch('/auth/me'),
+    
+    forgotPassword: (email: string) => apiFetch('/auth/forgot-password', { 
+      method: 'POST', 
+      body: { email } 
+    }),
+    
+    resetPassword: (data: { token: string; new_password: string }) => apiFetch('/auth/reset-password', { 
+      method: 'POST', 
+      body: data 
+    }),
+
+    // Documents
+    uploadDocument: async (animalId: number, formData: FormData) => {
+      try {
+        const response = await $fetch(`${baseURL}/animals/${animalId}/documents`, {
+          method: 'POST',
+          body: formData,
+          // Don't set Content-Type header - browser will set it with boundary for multipart
+        })
+        return { data: response, error: null }
+      } catch (error: any) {
+        console.error('Upload Error:', error)
+        const errorMessage = error?.data?.detail || error?.message || 'Upload failed'
+        return { data: null, error: errorMessage }
+      }
+    },
+    getAnimalDocuments: (animalId: number, documentType?: string) => {
+      const query = documentType ? `?document_type=${documentType}` : ''
+      return apiFetch(`/animals/${animalId}/documents${query}`)
+    },
+    getDocument: (documentId: number) => apiFetch(`/documents/${documentId}`),
+    deleteDocument: (documentId: number) => apiFetch(`/documents/${documentId}`, { method: 'DELETE' }),
+    getDocumentTypes: () => apiFetch('/documents/types'),
 
     // Settings
     getProfile: (username: string) => apiFetch(`/settings/profile?username=${username}`),
@@ -126,5 +180,20 @@ export const useApi = () => {
     getNotifications: (username: string) => apiFetch(`/settings/notifications?username=${username}`),
     updateNotifications: (username: string, data: any) => apiFetch(`/settings/notifications?username=${username}`, { method: 'PUT', body: data }),
     changePassword: (username: string, data: any) => apiFetch(`/settings/password?username=${username}`, { method: 'POST', body: data }),
+
+    // Reports
+    downloadAnimalPDF: (animalId: number) => {
+      const url = `${baseURL}/reports/animals/${animalId}/pdf`
+      return url
+    },
+    downloadCompliancePDF: () => {
+      const url = `${baseURL}/reports/compliance/pdf`
+      return url
+    },
+    downloadAuditLogsPDF: (params: any = {}) => {
+      const query = new URLSearchParams(params).toString()
+      const url = `${baseURL}/reports/audit-logs/pdf${query ? `?${query}` : ''}`
+      return url
+    },
   }
 }

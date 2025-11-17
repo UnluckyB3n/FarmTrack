@@ -76,3 +76,19 @@ class Event(Base):
     anomaly_reason = Column(String, nullable=True)
     animal_id = Column(Integer, ForeignKey("animals.id"), nullable=False)
     animal = relationship("Animal", back_populates="events")
+
+class Document(Base):
+    __tablename__ = "documents"
+    id = Column(Integer, primary_key=True, index=True)
+    animal_id = Column(Integer, ForeignKey("animals.id"), nullable=False)
+    document_type = Column(String, nullable=False)  # vaccination_record, certificate, test_result, health_record, other
+    file_name = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
+    file_size = Column(Integer)  # in bytes
+    mime_type = Column(String)
+    description = Column(Text, nullable=True)
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    
+    animal = relationship("Animal")
+    uploader = relationship("User")

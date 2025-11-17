@@ -4,6 +4,7 @@ from sqlalchemy import or_, func
 from typing import Optional
 from app.db.session import get_db
 from app.db.models import Animal, AnimalBreed, Event, Facility, User
+from app.utils.qr_generator import generate_qr_response, generate_animal_qr_url
 
 router = APIRouter()
 
@@ -300,4 +301,157 @@ def get_animal_events(animal_id: int, db: Session = Depends(get_db)):
         },
         "events": result,
         "total_events": len(result)
-    }       
+    }
+
+
+@router.get("/{animal_id}/qr")
+def get_animal_qr_code(animal_id: int, db: Session = Depends(get_db)):
+    """
+    Generate QR code for animal public tracking page.
+    Returns a PNG image that can be scanned to view animal traceability.
+    """
+    animal = db.query(Animal).filter(Animal.id == animal_id).first()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    
+    # Generate public tracking URL
+    tracking_url = generate_animal_qr_url(animal_id)
+    
+    # Return QR code image
+    return generate_qr_response(tracking_url)
+
+
+@router.get("/{animal_id}/tracking-url")
+def get_animal_tracking_url(animal_id: int, db: Session = Depends(get_db)):
+    """
+    Get the public tracking URL for an animal.
+    """
+    animal = db.query(Animal).filter(Animal.id == animal_id).first()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    
+    tracking_url = generate_animal_qr_url(animal_id)
+    
+    return {
+        "animal_id": animal_id,
+        "tracking_url": tracking_url,
+        "qr_code_url": f"/api/v1/animals/{animal_id}/qr"
+    }
+
+
+@router.post("/{animal_id}/transfer")
+def transfer_animal(
+    animal_id: int,
+    payload: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Transfer an animal to a new facility.
+    Creates a 'movement' event and updates the animal's facility_id.
+    
+    Payload:
+    - to_facility_id: ID of the destination facility
+    - actor_id: ID of the user performing the transfer
+    - notes: Optional notes about the transfer
+    """
+    animal = db.query(Animal).filter(Animal.id == animal_id).first()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    
+    to_facility_id = payload.get("to_facility_id")
+    actor_id = payload.get("actor_id")
+    notes = payload.get("notes", "")
+    
+    if not to_facility_id:
+        raise HTTPException(status_code=400, detail="to_facility_id is required")
+    
+    # Check if destination facility exists
+    to_facility = db.query(Facility).filter(Facility.id == to_facility_id).first()
+    if not to_facility:
+        raise HTTPException(status_code=404, detail="Destination facility not found")
+    
+    # Get current facility name for the event metadata
+    from_facility = db.query(Facility).filter(Facility.id == animal.facility_id).first() if animal.facility_id else None
+    from_facility_name = from_facility.name if from_facility else "Unknown"
+    
+    # Create movement event
+    metadata = f"Transferred from {from_facility_name} to {to_facility.name}"
+    if notes:
+        metadata += f". Notes: {notes}"
+    
+    movement_event = Event(
+        event_type="movement",
+        animal_id=animal_id,
+        actor_id=actor_id,
+        facility_id=to_facility_id,
+        event_metadata=metadata,
+        is_valid=True
+    )
+    
+    # Update animal's current facility
+    animal.facility_id = to_facility_id
+    
+    db.add(movement_event)
+    db.add(animal)
+    db.commit()
+    db.refresh(animal)
+    db.refresh(movement_event)
+    
+    return {
+        "status": "success",
+        "message": f"Animal transferred to {to_facility.name}",
+        "animal": {
+            "id": animal.id,
+            "name": animal.name,
+            "facility_id": animal.facility_id,
+            "facility_name": to_facility.name
+        },
+        "event": {
+            "id": movement_event.id,
+            "event_type": movement_event.event_type,
+            "timestamp": str(movement_event.timestamp),
+            "metadata": movement_event.event_metadata
+        }
+    }
+
+
+@router.get("/{animal_id}/movement-history")
+def get_animal_movement_history(animal_id: int, db: Session = Depends(get_db)):
+    """
+    Get the complete movement history of an animal across facilities.
+    Returns all 'movement' events with facility details.
+    """
+    animal = db.query(Animal).filter(Animal.id == animal_id).first()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    
+    # Get all movement events
+    movement_events = db.query(Event).filter(
+        Event.animal_id == animal_id,
+        Event.event_type == "movement"
+    ).order_by(Event.timestamp.desc()).all()
+    
+    result = []
+    for event in movement_events:
+        facility = db.query(Facility).filter(Facility.id == event.facility_id).first()
+        result.append({
+            "id": event.id,
+            "timestamp": str(event.timestamp),
+            "facility_id": event.facility_id,
+            "facility_name": facility.name if facility else "Unknown",
+            "facility_type": facility.facility_type if facility else None,
+            "facility_location": facility.location if facility else None,
+            "metadata": event.event_metadata,
+            "actor_id": event.actor_id
+        })
+    
+    return {
+        "animal": {
+            "id": animal.id,
+            "name": animal.name,
+            "species": animal.species,
+            "current_facility_id": animal.facility_id
+        },
+        "movement_history": result,
+        "total_movements": len(result)
+    }

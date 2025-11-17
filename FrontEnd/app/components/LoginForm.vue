@@ -44,7 +44,12 @@
               />
             </div>
             <div class="grid gap-3">
-              <Label for="password">Password</Label>
+              <div class="flex items-center justify-between">
+                <Label for="password">Password</Label>
+                <NuxtLink to="/forgot-password" class="text-xs text-primary hover:underline">
+                  Forgot password?
+                </NuxtLink>
+              </div>
               <Input
                 id="password"
                 v-model="password"
@@ -72,6 +77,13 @@
             <li><strong>Farmer:</strong> j_farmer / farmer123</li>
             <li><strong>Processor:</strong> m_processor / process123</li>
           </ul>
+        </div>
+
+        <div class="mt-4 text-center text-sm">
+          Don't have an account?
+          <NuxtLink to="/register" class="text-primary hover:underline font-medium">
+            Sign up
+          </NuxtLink>
         </div>
       </CardContent>
     </Card>
@@ -125,10 +137,7 @@ const handleLogin = async () => {
     const trimmedUsername = username.value.trim()
     const trimmedPassword = password.value.trim()
     
-    console.log('Attempting login with username:', trimmedUsername)
     const result = await api.login(trimmedUsername, trimmedPassword)
-    
-    console.log('Login result:', result)
     
     if (result.error) {
       error.value = result.error
@@ -137,8 +146,6 @@ const handleLogin = async () => {
       // Store token in localStorage
       localStorage.setItem('auth_token', result.data.access_token)
       localStorage.setItem('username', trimmedUsername)
-      
-      console.log('Login successful, redirecting to dashboard')
       
       // Redirect to dashboard
       await router.push('/dashboard')

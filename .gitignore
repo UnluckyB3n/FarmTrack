@@ -13,10 +13,24 @@ node_modules
 logs
 *.log
 
-# Misc
-.DS_Store
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Uploads
+uploads/
+
+# IDE
+.vscode/
 .fleet
 .idea
+
+# Misc
+.DS_Store
 
 # Local env files
 .env

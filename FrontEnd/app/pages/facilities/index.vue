@@ -7,7 +7,7 @@
           <h3 class="text-lg font-medium">Facilities Management</h3>
           <p class="text-sm text-muted-foreground">Manage farms, processors, and retailers</p>
         </div>
-        <UiButton>
+        <UiButton @click="openAddDialog">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -107,6 +107,51 @@
         </div>
       </div>
     </div>
+
+    <!-- Add/Edit Facility Dialog -->
+    <UiDialog v-model:open="dialogOpen">
+      <UiDialogContent class="max-w-md">
+        <UiDialogHeader>
+          <UiDialogTitle>{{ editMode ? 'Edit Facility' : 'Add New Facility' }}</UiDialogTitle>
+          <UiDialogDescription>
+            {{ editMode ? 'Update facility information' : 'Enter facility details to add to the system' }}
+          </UiDialogDescription>
+        </UiDialogHeader>
+
+        <div class="space-y-4 py-4">
+          <div class="space-y-2">
+            <UiLabel for="name">Facility Name *</UiLabel>
+            <UiInput id="name" v-model="facilityForm.name" placeholder="e.g., Green Valley Farm" />
+          </div>
+
+          <div class="space-y-2">
+            <UiLabel for="type">Facility Type *</UiLabel>
+            <UiSelect v-model="facilityForm.facility_type">
+              <UiSelectTrigger id="type">
+                <UiSelectValue placeholder="Select type" />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                <UiSelectItem value="farm">Farm</UiSelectItem>
+                <UiSelectItem value="processor">Processor</UiSelectItem>
+                <UiSelectItem value="retailer">Retailer</UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+          </div>
+
+          <div class="space-y-2">
+            <UiLabel for="location">Location *</UiLabel>
+            <UiInput id="location" v-model="facilityForm.location" placeholder="e.g., 123 Farm Road, County, State" />
+          </div>
+        </div>
+
+        <UiDialogFooter>
+          <UiButton variant="outline" @click="dialogOpen = false">Cancel</UiButton>
+          <UiButton @click="saveFacility" :disabled="!facilityForm.name || !facilityForm.facility_type || !facilityForm.location">
+            {{ editMode ? 'Update' : 'Create' }}
+          </UiButton>
+        </UiDialogFooter>
+      </UiDialogContent>
+    </UiDialog>
   </NuxtLayout>
 </template>
 
@@ -122,6 +167,16 @@ const loading = ref(false)
 
 const facilities = ref<any[]>([])
 const total = ref(0)
+
+// Dialog state
+const dialogOpen = ref(false)
+const editMode = ref(false)
+const editingFacilityId = ref<number | null>(null)
+const facilityForm = ref({
+  name: '',
+  facility_type: '',
+  location: ''
+})
 
 const loadFacilities = async () => {
   loading.value = true
@@ -170,6 +225,32 @@ const getFacilityBadgeVariant = (type: string) => {
       return 'outline'
     default:
       return 'outline'
+  }
+}
+
+const openAddDialog = () => {
+  editMode.value = false
+  editingFacilityId.value = null
+  facilityForm.value = {
+    name: '',
+    facility_type: '',
+    location: ''
+  }
+  dialogOpen.value = true
+}
+
+const saveFacility = async () => {
+  if (!facilityForm.value.name || !facilityForm.value.facility_type || !facilityForm.value.location) {
+    return
+  }
+
+  const result = editMode.value && editingFacilityId.value
+    ? await api.updateFacility(editingFacilityId.value, facilityForm.value)
+    : await api.createFacility(facilityForm.value)
+
+  if (result.data) {
+    dialogOpen.value = false
+    loadFacilities()
   }
 }
 

@@ -14,6 +14,15 @@
           <UiButton variant="outline" @click="router.push('/animals')">
             Back to Animals
           </UiButton>
+          <UiButton variant="outline" @click="openQRDialog">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+            View QR Code
+          </UiButton>
+          <UiButton variant="outline" @click="downloadPDF">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Download PDF
+          </UiButton>
+          <UiButton variant="outline" @click="openTransferDialog">Transfer</UiButton>
           <UiButton @click="openEditDialog">Edit Animal</UiButton>
         </div>
       </div>
@@ -76,6 +85,52 @@
                 {{ animal.owner.username }}
               </p>
             </div>
+          </div>
+        </UiCardContent>
+      </UiCard>
+
+      <!-- Documents -->
+      <UiCard>
+        <UiCardHeader>
+          <div class="flex items-center justify-between">
+            <div>
+              <UiCardTitle>Documents</UiCardTitle>
+              <UiCardDescription>Vaccination records, certificates, and other files</UiCardDescription>
+            </div>
+            <UiButton @click="openUploadDialog" size="sm">
+              Upload Document
+            </UiButton>
+          </div>
+        </UiCardHeader>
+        <UiCardContent>
+          <div v-if="loadingDocuments" class="flex justify-center py-8">
+            <UiSpinner />
+          </div>
+          <div v-else-if="documents && documents.length > 0" class="space-y-3">
+            <div
+              v-for="doc in documents"
+              :key="doc.id"
+              class="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+            >
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <p class="font-medium text-sm truncate">{{ doc.file_name }}</p>
+                  <UiBadge variant="outline" class="text-xs">{{ doc.document_type }}</UiBadge>
+                </div>
+                <p v-if="doc.description" class="text-xs text-muted-foreground mb-1">
+                  {{ doc.description }}
+                </p>
+                <p class="text-xs text-muted-foreground">
+                  {{ formatFileSize(doc.file_size) }} • Uploaded {{ formatDate(doc.uploaded_at) }} by {{ doc.uploaded_by }}
+                </p>
+              </div>
+              <UiButton variant="ghost" size="sm" @click="deleteDoc(doc.id)">
+                Delete
+              </UiButton>
+            </div>
+          </div>
+          <div v-else class="py-8 text-center text-muted-foreground">
+            No documents uploaded yet
           </div>
         </UiCardContent>
       </UiCard>
@@ -216,6 +271,198 @@
         </UiDialogFooter>
       </UiDialogContent>
     </UiDialog>
+
+    <!-- Transfer Animal Dialog -->
+    <UiDialog v-model:open="transferDialogOpen">
+      <UiDialogContent>
+        <UiDialogHeader>
+          <UiDialogTitle>Transfer Animal</UiDialogTitle>
+          <UiDialogDescription>
+            Move {{ animal?.name }} to a different facility
+          </UiDialogDescription>
+        </UiDialogHeader>
+
+        <div class="space-y-4 py-4">
+          <div class="space-y-2">
+            <UiLabel>Current Facility</UiLabel>
+            <div class="p-3 bg-muted rounded-md text-sm">
+              {{ animal?.facility?.name || 'No facility' }}
+              <span v-if="animal?.facility?.facility_type" class="text-muted-foreground">
+                ({{ animal.facility.facility_type }})
+              </span>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <UiLabel for="new-facility">New Facility *</UiLabel>
+            <UiSelect v-model="transferForm.to_facility_id">
+              <UiSelectTrigger id="new-facility">
+                <UiSelectValue placeholder="Select destination facility" />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                <UiSelectItem 
+                  v-for="facility in availableFacilities" 
+                  :key="facility.id" 
+                  :value="facility.id.toString()"
+                >
+                  {{ facility.name }} ({{ facility.facility_type }})
+                </UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+          </div>
+
+          <div class="space-y-2">
+            <UiLabel for="transfer-notes">Notes</UiLabel>
+            <UiTextarea 
+              id="transfer-notes" 
+              v-model="transferForm.notes" 
+              placeholder="Optional notes about this transfer"
+              rows="3"
+            />
+          </div>
+        </div>
+
+        <UiDialogFooter>
+          <UiButton variant="outline" @click="transferDialogOpen = false">Cancel</UiButton>
+          <UiButton @click="transferAnimal" :disabled="!transferForm.to_facility_id">
+            Transfer Animal
+          </UiButton>
+        </UiDialogFooter>
+      </UiDialogContent>
+    </UiDialog>
+
+    <!-- QR Code Dialog -->
+    <UiDialog v-model:open="qrDialogOpen">
+      <UiDialogContent class="max-w-md">
+        <UiDialogHeader>
+          <UiDialogTitle>QR Code for {{ animal?.name }}</UiDialogTitle>
+          <UiDialogDescription>
+            Scan this code to view public traceability information
+          </UiDialogDescription>
+        </UiDialogHeader>
+
+        <div class="space-y-4 py-4">
+          <!-- QR Code Image -->
+          <div class="flex justify-center bg-white p-6 rounded-lg border-2 border-primary/20">
+            <img 
+              :src="qrCodeUrl" 
+              alt="Animal QR Code"
+              class="w-64 h-64"
+            />
+          </div>
+
+          <!-- Public URL -->
+          <div class="space-y-2">
+            <UiLabel>Public Tracking URL</UiLabel>
+            <div class="flex gap-2">
+              <UiInput 
+                :value="publicUrl" 
+                readonly 
+                class="flex-1"
+              />
+              <UiButton 
+                variant="outline" 
+                size="sm"
+                @click="copyPublicUrl"
+              >
+                {{ urlCopied ? '✓ Copied' : 'Copy' }}
+              </UiButton>
+            </div>
+            <p class="text-xs text-muted-foreground">
+              Anyone can scan the QR code or visit this URL to view traceability information
+            </p>
+          </div>
+
+          <!-- Download QR Code -->
+          <div class="flex gap-2">
+            <UiButton 
+              variant="outline" 
+              class="flex-1"
+              @click="downloadQRCode"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+              Download QR Code
+            </UiButton>
+            <UiButton 
+              variant="outline" 
+              class="flex-1"
+              @click="printQRCode"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+              Print
+            </UiButton>
+          </div>
+        </div>
+
+        <UiDialogFooter>
+          <UiButton @click="qrDialogOpen = false">Close</UiButton>
+        </UiDialogFooter>
+      </UiDialogContent>
+    </UiDialog>
+
+    <!-- Upload Document Dialog -->
+    <UiDialog v-model:open="uploadDialogOpen">
+      <UiDialogContent>
+        <UiDialogHeader>
+          <UiDialogTitle>Upload Document</UiDialogTitle>
+          <UiDialogDescription>
+            Upload a document for {{ animal?.name }}
+          </UiDialogDescription>
+        </UiDialogHeader>
+
+        <div class="space-y-4 py-4">
+          <div class="space-y-2">
+            <UiLabel for="doc-type">Document Type *</UiLabel>
+            <UiSelect v-model="uploadForm.document_type">
+              <UiSelectTrigger id="doc-type">
+                <UiSelectValue placeholder="Select document type" />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                <UiSelectItem 
+                  v-for="type in documentTypes" 
+                  :key="type.value" 
+                  :value="type.value"
+                >
+                  {{ type.label }}
+                </UiSelectItem>
+              </UiSelectContent>
+            </UiSelect>
+          </div>
+
+          <div class="space-y-2">
+            <UiLabel for="doc-file">File *</UiLabel>
+            <input 
+              id="doc-file" 
+              type="file" 
+              @change="onFileChange"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <p class="text-xs text-muted-foreground">
+              Max 10MB. Allowed: PDF, JPG, PNG, DOC, DOCX, TXT
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <UiLabel for="doc-description">Description</UiLabel>
+            <UiTextarea 
+              id="doc-description" 
+              v-model="uploadForm.description" 
+              placeholder="Optional notes about this document"
+              rows="3"
+            />
+          </div>
+        </div>
+
+        <UiDialogFooter>
+          <UiButton variant="outline" @click="uploadDialogOpen = false">Cancel</UiButton>
+          <UiButton @click="uploadDocument" :disabled="!uploadForm.file || !uploadForm.document_type || uploading">
+            <UiSpinner v-if="uploading" class="mr-2 h-4 w-4" />
+            {{ uploading ? 'Uploading...' : 'Upload' }}
+          </UiButton>
+        </UiDialogFooter>
+      </UiDialogContent>
+    </UiDialog>
   </NuxtLayout>
 </template>
 
@@ -225,6 +472,11 @@ const router = useRouter()
 const api = useApi()
 
 const animalId = computed(() => parseInt(route.params.id as string))
+
+// Set page title
+useHead({
+  title: 'Animal Details - FarmTrack'
+})
 
 const animal = ref<any>(null)
 const events = ref<any[]>([])
@@ -247,6 +499,32 @@ const breedCountries = ref<any[]>([])
 const availableBreeds = ref<any[]>([])
 const loadingBreeds = ref(false)
 
+// Transfer dialog state
+const transferDialogOpen = ref(false)
+const transferForm = ref({
+  to_facility_id: '',
+  notes: ''
+})
+const availableFacilities = ref<any[]>([])
+
+// Documents state
+const documents = ref<any[]>([])
+const loadingDocuments = ref(false)
+const uploadDialogOpen = ref(false)
+const uploadForm = ref({
+  file: null as File | null,
+  document_type: '',
+  description: ''
+})
+const documentTypes = ref<any[]>([])
+const uploading = ref(false)
+
+// QR Code state
+const qrDialogOpen = ref(false)
+const qrCodeUrl = ref('')
+const publicUrl = ref('')
+const urlCopied = ref(false)
+
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -255,14 +533,37 @@ const formatDate = (dateString: string) => {
   })
 }
 
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
+
 const loadAnimal = async () => {
   loading.value = true
   const result = await api.getAnimal(animalId.value)
   if (result.data) {
     animal.value = result.data
-    console.log('Loaded animal:', animal.value)
   }
   loading.value = false
+}
+
+const loadDocuments = async () => {
+  loadingDocuments.value = true
+  const result = await api.getAnimalDocuments(animalId.value)
+  if (result.data?.documents) {
+    documents.value = result.data.documents
+  }
+  loadingDocuments.value = false
+}
+
+const loadDocumentTypes = async () => {
+  const result = await api.getDocumentTypes()
+  if (result.data?.document_types) {
+    documentTypes.value = result.data.document_types
+  }
 }
 
 const loadEvents = async () => {
@@ -361,6 +662,47 @@ const onCountryChange = async () => {
   }
 }
 
+const openTransferDialog = async () => {
+  // Reset form
+  transferForm.value = {
+    to_facility_id: '',
+    notes: ''
+  }
+  
+  // Load available facilities
+  const result = await api.getFacilities()
+  if (result.data?.facilities) {
+    // Filter out the current facility
+    availableFacilities.value = result.data.facilities.filter(
+      (f: any) => f.id !== animal.value?.facility_id
+    )
+  }
+  
+  transferDialogOpen.value = true
+}
+
+const transferAnimal = async () => {
+  if (!transferForm.value.to_facility_id) {
+    return
+  }
+
+  const { data: userData } = await api.getCurrentUser()
+  
+  const payload = {
+    to_facility_id: parseInt(transferForm.value.to_facility_id),
+    actor_id: userData?.id,
+    notes: transferForm.value.notes
+  }
+
+  const result = await api.transferAnimal(animalId.value, payload)
+  
+  if (result.data) {
+    transferDialogOpen.value = false
+    await loadAnimal()
+    await loadEvents()
+  }
+}
+
 const updateAnimal = async () => {
   if (!editAnimal.value.name || !editAnimal.value.species) {
     return
@@ -383,8 +725,119 @@ const updateAnimal = async () => {
   }
 }
 
+const openUploadDialog = async () => {
+  uploadForm.value = {
+    file: null,
+    document_type: '',
+    description: ''
+  }
+  
+  await loadDocumentTypes()
+  uploadDialogOpen.value = true
+}
+
+const onFileChange = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files.length > 0) {
+    uploadForm.value.file = target.files[0]
+  }
+}
+
+const uploadDocument = async () => {
+  if (!uploadForm.value.file || !uploadForm.value.document_type) return
+  
+  uploading.value = true
+  
+  const formData = new FormData()
+  formData.append('file', uploadForm.value.file)
+  formData.append('document_type', uploadForm.value.document_type)
+  if (uploadForm.value.description) {
+    formData.append('description', uploadForm.value.description)
+  }
+  
+  const result = await api.uploadDocument(animalId.value, formData)
+  
+  if (result.data) {
+    uploadDialogOpen.value = false
+    await loadDocuments()
+  }
+  
+  uploading.value = false
+}
+
+const deleteDoc = async (docId: number) => {
+  if (!confirm('Are you sure you want to delete this document?')) return
+  
+  const result = await api.deleteDocument(docId)
+  
+  if (result.data) {
+    await loadDocuments()
+  }
+}
+
+const openQRDialog = () => {
+  const config = useRuntimeConfig()
+  const baseUrl = config.public.apiUrl || 'http://localhost:8000/api/v1'
+  const frontendUrl = config.public.siteUrl || 'http://localhost:3000'
+  
+  // Set QR code URL (backend generates the QR image)
+  qrCodeUrl.value = `${baseUrl}/animals/${animalId.value}/qr`
+  
+  // Set public tracking URL
+  publicUrl.value = `${frontendUrl}/public/${animalId.value}`
+  
+  qrDialogOpen.value = true
+  urlCopied.value = false
+}
+
+const copyPublicUrl = async () => {
+  try {
+    await navigator.clipboard.writeText(publicUrl.value)
+    urlCopied.value = true
+    setTimeout(() => {
+      urlCopied.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy URL:', err)
+  }
+}
+
+const downloadQRCode = () => {
+  // Create a link to download the QR code image
+  const link = document.createElement('a')
+  link.href = qrCodeUrl.value
+  link.download = `animal_${animalId.value}_qr_code.png`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+const printQRCode = () => {
+  // Open QR code in new window for printing
+  const printWindow = window.open(qrCodeUrl.value, '_blank')
+  if (printWindow) {
+    printWindow.onload = () => {
+      printWindow.print()
+    }
+  }
+}
+
+const downloadPDF = () => {
+  const token = localStorage.getItem('token')
+  const url = api.downloadAnimalPDF(animalId.value)
+  
+  // Create a temporary link and trigger download
+  const link = document.createElement('a')
+  link.href = url + `?token=${token}`
+  link.download = `animal_${animalId.value}_traceability_report.pdf`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 onMounted(() => {
   loadAnimal()
   loadEvents()
+  loadDocuments()
 })
 </script>

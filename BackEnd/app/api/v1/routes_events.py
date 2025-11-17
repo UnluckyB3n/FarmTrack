@@ -11,7 +11,9 @@ router = APIRouter()
 
 @router.post("/", status_code=201)
 def create_event(payload: dict, db: Session = Depends(get_db)):
-    """Create a new event with validation"""
+    """Create a new event with validation and anomaly notification"""
+    from app.utils.email_service import email_service
+    
     animal_id = payload.get("animal_id")
     if not animal_id:
         raise HTTPException(status_code=400, detail="animal_id is required")
@@ -37,6 +39,20 @@ def create_event(payload: dict, db: Session = Depends(get_db)):
     db.add(event)
     db.commit()
     db.refresh(event)
+    
+    # If anomaly detected, send email alerts to regulators
+    if not event.is_valid:
+        regulators = db.query(User).filter(User.role == "regulator").all()
+        for regulator in regulators:
+            if regulator.email:
+                email_service.send_anomaly_alert_email(
+                    to_email=regulator.email,
+                    username=regulator.username,
+                    animal_id=animal.id,
+                    animal_name=animal.name,
+                    event_type=event.event_type,
+                    anomaly_reason=event.anomaly_reason or "Validation failed"
+                )
     
     return {
         "status": "success",

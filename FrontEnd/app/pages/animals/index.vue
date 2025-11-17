@@ -227,6 +227,11 @@
 <script setup lang="ts">
 import { toast } from 'vue-sonner'
 
+// Set page title
+useHead({
+  title: 'Animals - FarmTrack'
+})
+
 const api = useApi()
 const router = useRouter()
 
@@ -416,8 +421,8 @@ const viewAnimal = (id: number) => {
 }
 
 const editAnimal = (animal: any) => {
-  // TODO: Implement edit dialog
-  console.log('Edit animal:', animal)
+  // Navigate to animal detail page where edit dialog is available
+  router.push(`/animals/${animal.id}`)
 }
 
 const formatDate = (dateString: string) => {
