@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-background">
+  <div class="min-h-screen bg-background bg-farm-pattern">
     <!-- Sidebar -->
     <aside
-      class="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-card transition-transform"
+      class="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-card farm-shadow transition-transform"
     >
       <div class="flex h-full flex-col">
         <!-- Logo -->
-        <div class="flex h-16 items-center border-b px-6">
+        <div class="flex h-16 items-center border-b px-6 bg-gradient-to-r from-primary/5 to-transparent">
           <h1 class="text-2xl font-bold text-primary">🚜 FarmTrack</h1>
         </div>
 
