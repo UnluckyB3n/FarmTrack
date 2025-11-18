@@ -6,8 +6,11 @@ from app.db.session import get_db
 from app.db.models import User
 from app.core.security import create_access_token, verify_password, get_password_hash
 from app.core.dependencies import get_current_user
+from app.core.config import settings
 import secrets
 from datetime import datetime, timedelta
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 from sqlalchemy.orm import Session
 
@@ -81,7 +84,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             "username": user.username,
             "role": user.role,
             "email": user.email,
-            "full_name": user.full_name
+            "full_name": user.full_name,
+            "auth_provider": user.auth_provider or "credentials"
         }
     }
 
@@ -115,7 +119,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         password_hash=hashed_password,
         role=payload.role,
         email=payload.email,
-        full_name=payload.full_name
+        full_name=payload.full_name,
+        auth_provider='credentials'
     )
     
     db.add(new_user)
@@ -134,7 +139,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             "username": new_user.username,
             "role": new_user.role,
             "email": new_user.email,
-            "full_name": new_user.full_name
+            "full_name": new_user.full_name,
+            "auth_provider": new_user.auth_provider or "credentials"
         }
     }
 
@@ -272,3 +278,98 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
         "message": "Password reset successfully",
         "username": user.username
     }
+
+
+class GoogleAuthRequest(BaseModel):
+    token: str  # Google ID token from frontend
+    role: Optional[str] = "farmer"  # Default role for new users
+
+
+@router.post("/google-auth", response_model=LoginResponse)
+def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
+    """
+    Authenticate or register user with Google OAuth token.
+    """
+    try:
+        # Verify the Google token
+        idinfo = id_token.verify_oauth2_token(
+            payload.token,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID
+        )
+        
+        # Verify the token is for our app
+        if idinfo['aud'] != settings.GOOGLE_CLIENT_ID:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token audience"
+            )
+        
+        # Extract user information from Google
+        google_user_id = idinfo['sub']
+        email = idinfo.get('email')
+        name = idinfo.get('name', '')
+        
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email not provided by Google"
+            )
+        
+        # Check if user exists by email
+        user = db.query(User).filter(User.email == email).first()
+        
+        if not user:
+            # Create new user from Google account
+            # Generate username from email
+            username_base = email.split('@')[0]
+            username = username_base
+            
+            # Ensure username is unique
+            counter = 1
+            while db.query(User).filter(User.username == username).first():
+                username = f"{username_base}{counter}"
+                counter += 1
+            
+            # Create user with a random password hash (won't be used for Google auth)
+            random_password = secrets.token_urlsafe(32)
+            user = User(
+                username=username,
+                password_hash=get_password_hash(random_password),
+                email=email,
+                full_name=name,
+                role=payload.role if payload.role in ['farmer', 'processor', 'regulator'] else 'farmer',
+                auth_provider='google'
+            )
+            
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        # Generate JWT token for our app
+        token = create_access_token({"sub": user.username, "role": user.role})
+        
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "role": user.role,
+                "email": user.email,
+                "full_name": user.full_name,
+                "auth_provider": user.auth_provider or "google"
+            }
+        }
+        
+    except ValueError as e:
+        # Invalid token
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid Google token: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Authentication failed: {str(e)}"
+        )

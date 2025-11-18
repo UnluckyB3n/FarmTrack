@@ -14,6 +14,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=True)
     full_name = Column(String, nullable=True)
     bio = Column(Text, nullable=True)
+    auth_provider = Column(String, default='credentials', nullable=True)  # credentials, google
     
     # Account settings
     date_of_birth = Column(String, nullable=True)

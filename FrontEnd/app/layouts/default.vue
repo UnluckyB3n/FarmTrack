@@ -89,7 +89,7 @@
                 Settings
               </UiDropdownMenuItem>
               <UiDropdownMenuSeparator />
-              <UiDropdownMenuItem @click="confirmSignOut" class="text-destructive focus:text-destructive">
+              <UiDropdownMenuItem @click="handleSignOut" class="text-destructive focus:text-destructive">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -204,7 +204,6 @@ const filteredNavItems = computed(() => {
 const displayName = ref('User')
 const userRole = ref('Farmer')
 const userInitials = ref('U')
-const showSignOutDialog = ref(false)
 
 onMounted(() => {
   // Load display settings from localStorage
@@ -231,12 +230,8 @@ onMounted(() => {
   }
 })
 
-const confirmSignOut = () => {
-  showSignOutDialog.value = true
-}
-
 const handleSignOut = async () => {
-  showSignOutDialog.value = false
+  console.log('Sign out button clicked')
   await auth.signOut()
 }
 </script>

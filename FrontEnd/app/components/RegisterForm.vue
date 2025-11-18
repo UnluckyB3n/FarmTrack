@@ -14,7 +14,7 @@
           <div class="grid gap-6">
             <!-- Google SSO Button -->
             <div class="flex flex-col gap-4">
-              <Button variant="outline" class="w-full" @click="registerWithGoogle" type="button">
+              <Button variant="outline" class="w-full" @click="registerWithGoogle" type="button" :disabled="loading">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="mr-2 h-4 w-4">
                   <path
                     d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
@@ -178,7 +178,7 @@ const props = defineProps<{
 
 const router = useRouter()
 const api = useApi()
-const { signIn } = useAuth()
+const { signIn, data: session } = useAuth()
 
 const username = ref('')
 const email = ref('')
@@ -190,8 +190,55 @@ const error = ref('')
 const success = ref('')
 const loading = ref(false)
 
+// Watch for successful Google authentication
+watch(session, async (newSession) => {
+  if (newSession) {
+    // User authenticated via Google, send token to backend
+    const googleToken = (newSession as any).id_token || (newSession as any).idToken
+    if (googleToken) {
+      await handleGoogleAuth(googleToken)
+    }
+  }
+})
+
 const registerWithGoogle = async () => {
-  await signIn('google', { callbackUrl: '/dashboard' })
+  loading.value = true
+  error.value = ''
+  try {
+    await signIn('google', { callbackUrl: '/dashboard' })
+  } catch (err: any) {
+    console.error('Google sign-up error:', err)
+    error.value = 'Google sign-up failed'
+    loading.value = false
+  }
+}
+
+const handleGoogleAuth = async (googleToken: string) => {
+  try {
+    // Use the selected role for Google registration
+    const result = await api.googleAuth(googleToken, role.value)
+    
+    if (result.error) {
+      error.value = result.error
+    } else if (result.data && result.data.access_token) {
+      // Store our backend JWT token
+      localStorage.setItem('auth_token', result.data.access_token)
+      localStorage.setItem('username', result.data.user.username)
+      localStorage.setItem('auth_method', result.data.user?.auth_provider || 'google')
+      
+      success.value = 'Account created successfully! Redirecting...'
+      
+      // Redirect to dashboard after short delay
+      setTimeout(async () => {
+        await router.push('/dashboard')
+      }, 1500)
+    }
+  } catch (err: any) {
+    console.error('Backend auth error:', err)
+    error.value = 'Authentication failed'
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleRegister = async () => {
@@ -250,6 +297,7 @@ const handleRegister = async () => {
       // Registration successful - store token and redirect
       localStorage.setItem('auth_token', result.data.access_token)
       localStorage.setItem('username', result.data.user.username)
+      localStorage.setItem('auth_method', result.data.user?.auth_provider || 'credentials')
       
       success.value = 'Account created successfully! Redirecting...'
       

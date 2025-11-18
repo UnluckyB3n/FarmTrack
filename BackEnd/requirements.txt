@@ -14,3 +14,6 @@ passlib[bcrypt]
 bcrypt==4.0.1
 qrcode[pil]
 reportlab
+google-auth
+google-auth-oauthlib
+google-auth-httplib2

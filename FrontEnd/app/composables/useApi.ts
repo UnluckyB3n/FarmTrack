@@ -141,6 +141,23 @@ export const useApi = () => {
       }
     },
     
+    googleAuth: async (googleToken: string, role: string = 'farmer') => {
+      try {
+        const response = await $fetch(`${baseURL}/auth/google-auth`, {
+          method: 'POST',
+          body: JSON.stringify({ token: googleToken, role }),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        return { data: response, error: null }
+      } catch (error: any) {
+        console.error('Google Auth Error:', error)
+        const errorMessage = error?.data?.detail || error?.message || 'Google authentication failed'
+        return { data: null, error: errorMessage }
+      }
+    },
+    
     getCurrentUser: () => apiFetch('/auth/me'),
     
     forgotPassword: (email: string) => apiFetch('/auth/forgot-password', { 
