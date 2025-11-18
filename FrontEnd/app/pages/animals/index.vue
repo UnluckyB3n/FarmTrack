@@ -74,7 +74,7 @@
                     <UiBadge variant="outline">{{ animal.species }}</UiBadge>
                   </UiTableCell>
                   <UiTableCell>{{ formatDate(animal.date_added) }}</UiTableCell>
-                  <UiTableCell>Facility #{{ animal.facility_id }}</UiTableCell>
+                  <UiTableCell>{{ getFacilityName(animal.facility_id) }}</UiTableCell>
                   <UiTableCell>
                     <div class="flex gap-2">
                       <UiButton variant="ghost" size="sm" @click="viewAnimal(animal.id)">
@@ -428,6 +428,12 @@ const editAnimal = (animal: any) => {
 const formatDate = (dateString: string) => {
   if (!dateString) return 'N/A'
   return new Date(dateString).toLocaleDateString()
+}
+
+const getFacilityName = (facilityId: number | null) => {
+  if (!facilityId) return 'No Facility'
+  const facility = facilities.value.find(f => f.id === facilityId)
+  return facility ? facility.name : 'Unknown'
 }
 
 onMounted(() => {
