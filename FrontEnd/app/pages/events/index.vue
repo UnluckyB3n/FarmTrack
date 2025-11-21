@@ -285,15 +285,31 @@
 
             <div class="space-y-2">
               <UiLabel for="facility_id" class="text-sm font-medium">
-                Facility ID *
+                Facility *
               </UiLabel>
-              <UiInput 
-                id="facility_id" 
-                v-model="eventForm.facility_id" 
-                type="number"
-                placeholder="e.g., 5"
-                class="h-10"
-              />
+              <UiSelect v-model="eventForm.facility_id">
+                <UiSelectTrigger id="facility_id" class="h-10">
+                  <UiSelectValue placeholder="Select a facility" />
+                </UiSelectTrigger>
+                <UiSelectContent>
+                  <UiSelectItem 
+                    v-for="facility in facilities" 
+                    :key="facility.id" 
+                    :value="facility.id.toString()"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span v-if="facility.facility_type === 'farm'">🚜</span>
+                      <span v-else-if="facility.facility_type === 'processor'">🏭</span>
+                      <span v-else-if="facility.facility_type === 'retailer'">🏪</span>
+                      <span v-else>🏢</span>
+                      <div>
+                        <div class="font-medium">{{ facility.name }}</div>
+                        <div class="text-xs text-muted-foreground">{{ facility.location }}</div>
+                      </div>
+                    </div>
+                  </UiSelectItem>
+                </UiSelectContent>
+              </UiSelect>
               <p class="text-xs text-muted-foreground">Facility where the event occurred</p>
             </div>
           </div>
@@ -422,6 +438,7 @@ const loading = ref(false)
 
 const events = ref<any[]>([])
 const total = ref(0)
+const facilities = ref<any[]>([])
 
 // Dialog state
 const dialogOpen = ref(false)
@@ -511,6 +528,13 @@ const openCreateDialog = () => {
   dialogOpen.value = true
 }
 
+const loadFacilities = async () => {
+  const result = await api.getFacilities({ limit: 100 })
+  if (result.data?.facilities) {
+    facilities.value = result.data.facilities
+  }
+}
+
 const createEvent = async () => {
   if (!eventForm.value.animal_id || !eventForm.value.event_type || !eventForm.value.facility_id) {
     return
@@ -520,7 +544,7 @@ const createEvent = async () => {
     animal_id: parseInt(eventForm.value.animal_id),
     event_type: eventForm.value.event_type,
     facility_id: parseInt(eventForm.value.facility_id),
-    event_metadata: eventForm.value.event_metadata || null
+    metadata: eventForm.value.event_metadata || ""
   }
 
   const result = await api.createEvent(payload)
@@ -533,5 +557,6 @@ const createEvent = async () => {
 
 onMounted(() => {
   loadEvents()
+  loadFacilities()
 })
 </script>
