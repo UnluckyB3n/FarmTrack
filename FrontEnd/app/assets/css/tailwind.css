@@ -133,64 +133,147 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    /* Farm Theme - Light Mode - Warm Pastoral Colors from Images */
+    --background: 40 45% 94%; /* Warm cream/beige background */
+    --foreground: 30 25% 25%; /* Rich brown text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card: 0 0% 100%; /* Pure white cards */
+    --card-foreground: 30 25% 25%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 30 25% 25%;
 
-    --primary: 142.1 76.2% 36.3%;
-    --primary-foreground: 355.7 100% 97.3%;
+    --primary: 85 35% 55%; /* Sage/olive green from the hills */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 35 65% 75%; /* Warm peach/orange from the sun */
+    --secondary-foreground: 30 25% 25%;
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted: 40 30% 90%; /* Light cream/beige */
+    --muted-foreground: 30 15% 45%; /* Muted brown */
 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 30 55% 65%; /* Warm tan/brown accent */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 51%; /* Red for alerts */
     --destructive-foreground: 0 0% 98%;
 
-    --border:240 5.9% 90%;
-    --input:240 5.9% 90%;
-    --ring:142.1 76.2% 36.3%;
-    --radius: 0.5rem;
+    --border: 40 20% 85%; /* Soft tan border */
+    --input: 40 20% 85%;
+    --ring: 85 35% 55%; /* Sage green ring */
+    
+    --radius: 0.75rem; /* Rounded for friendly feel */
+
+    /* Farm-specific colors from the images */
+    --farm-sage: 85 35% 55%; /* Sage green hills */
+    --farm-brown: 30 45% 45%; /* Cow brown */
+    --farm-cream: 40 45% 94%; /* Cream background */
+    --farm-orange: 35 75% 65%; /* Warm sun orange */
+    --farm-tan: 30 55% 65%; /* Tan/beige */
+    --farm-olive: 75 30% 50%; /* Olive tree green */
   }
 
   .dark {
-    --background:20 14.3% 4.1%;
-    --foreground:0 0% 95%;
+    /* Farm Theme - Dark Mode - Cozy Evening on the Farm */
+    --background: 30 20% 15%; /* Dark warm brown */
+    --foreground: 40 40% 90%; /* Light cream */
 
-    --card:24 9.8% 10%;
-    --card-foreground:0 0% 95%;
+    --card: 30 25% 20%; /* Slightly lighter brown */
+    --card-foreground: 40 40% 90%;
 
-    --popover:0 0% 9%;
-    --popover-foreground:0 0% 95%;
+    --popover: 30 25% 20%;
+    --popover-foreground: 40 40% 90%;
 
-    --primary:142.1 70.6% 45.3%;
-    --primary-foreground:144.9 80.4% 10%;
+    --primary: 85 40% 50%; /* Muted sage green */
+    --primary-foreground: 30 20% 15%;
 
-    --secondary:240 3.7% 15.9%;
-    --secondary-foreground:0 0% 98%;
+    --secondary: 35 55% 60%; /* Warm orange glow */
+    --secondary-foreground: 30 20% 15%;
 
-    --muted:0 0% 15%;
-    --muted-foreground:240 5% 64.9%;
+    --muted: 30 20% 25%; /* Dark muted brown */
+    --muted-foreground: 40 25% 65%;
 
-    --accent:12 6.5% 15.1%;
-    --accent-foreground:0 0% 98%;
+    --accent: 30 45% 50%; /* Warm brown accent */
+    --accent-foreground: 40 40% 90%;
 
-    --destructive:0 62.8% 30.6%;
-    --destructive-foreground:0 85.7% 97.3%;
+    --destructive: 0 65% 45%; /* Deep red */
+    --destructive-foreground: 40 40% 90%;
 
-    --border:240 3.7% 15.9%;
-    --input:240 3.7% 15.9%;
-    --ring:142.4 71.8% 29.2%;
+    --border: 30 20% 30%; /* Dark border */
+    --input: 30 20% 30%;
+    --ring: 85 40% 50%;
+  }
+}
+
+/* Farm-themed custom utilities */
+@layer utilities {
+  .bg-farm-pattern {
+    background-image: 
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(151, 151, 106, 0.03) 10px,
+        rgba(151, 151, 106, 0.03) 20px
+      );
+  }
+
+  .bg-farm-scene {
+    background-image: url('/farm-background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  .bg-farm-login {
+    background-image: url('/farm-login.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  .text-farm-sage {
+    color: hsl(var(--farm-sage));
+  }
+
+  .text-farm-brown {
+    color: hsl(var(--farm-brown));
+  }
+
+  .text-farm-orange {
+    color: hsl(var(--farm-orange));
+  }
+
+  .text-farm-tan {
+    color: hsl(var(--farm-tan));
+  }
+
+  .bg-farm-sage {
+    background-color: hsl(var(--farm-sage));
+  }
+
+  .bg-farm-brown {
+    background-color: hsl(var(--farm-brown));
+  }
+
+  .bg-farm-orange {
+    background-color: hsl(var(--farm-orange));
+  }
+
+  .bg-farm-cream {
+    background-color: hsl(var(--farm-cream));
+  }
+
+  .border-farm-sage {
+    border-color: hsl(var(--farm-sage));
+  }
+
+  .farm-shadow {
+    box-shadow: 0 4px 6px -1px rgba(92, 70, 35, 0.12), 0 2px 4px -1px rgba(92, 70, 35, 0.08);
+  }
+
+  .farm-card-shadow {
+    box-shadow: 0 8px 16px -4px rgba(92, 70, 35, 0.1), 0 4px 8px -2px rgba(92, 70, 35, 0.06);
   }
 }
 

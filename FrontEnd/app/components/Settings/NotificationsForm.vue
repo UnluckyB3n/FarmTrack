@@ -1,204 +1,181 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
-import { h } from 'vue'
+import { ref, onMounted } from 'vue'
 import * as z from 'zod'
 
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
 import { Button } from '~/components/ui/button'
-import { Checkbox } from '~/components/ui/checkbox'
-import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { Separator } from '~/components/ui/separator'
 import { Switch } from '~/components/ui/switch'
-import { toast } from '~/components/ui/toast'
+
+const settings = useSettings()
+const loading = ref(false)
 
 const notificationsFormSchema = toTypedSchema(z.object({
-  type: z.enum(['all', 'mentions', 'none'], {
-    required_error: 'You need to select a notification type.',
-  }),
-  mobile: z.boolean().default(false).optional(),
+  mobile_notifications: z.boolean().default(false).optional(),
   communication_emails: z.boolean().default(false).optional(),
   social_emails: z.boolean().default(false).optional(),
   marketing_emails: z.boolean().default(false).optional(),
-  security_emails: z.boolean(),
+  security_emails: z.boolean().default(true),
 }))
 
-const { handleSubmit } = useForm({
+const { handleSubmit, setValues } = useForm({
   validationSchema: notificationsFormSchema,
   initialValues: {
     communication_emails: false,
     marketing_emails: false,
     social_emails: true,
     security_emails: true,
+    mobile_notifications: false,
   },
 })
 
-const onSubmit = handleSubmit((values) => {
-  toast({
-    title: 'You submitted the following values:',
-    description: h('pre', { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(values, null, 2))),
-  })
+onMounted(async () => {
+  await settings.loadNotifications()
+  if (settings.notifications.value) {
+    setValues({
+      communication_emails: settings.notifications.value.communication_emails ?? false,
+      marketing_emails: settings.notifications.value.marketing_emails ?? false,
+      social_emails: settings.notifications.value.social_emails ?? true,
+      security_emails: settings.notifications.value.security_emails ?? true,
+      mobile_notifications: settings.notifications.value.mobile_notifications ?? false,
+    })
+  }
+})
+
+const onSubmit = handleSubmit(async (values) => {
+  loading.value = true
+  const success = await settings.updateNotifications(values)
+  loading.value = false
+  
+  if (success) {
+    await settings.loadNotifications()
+  }
 })
 </script>
 
 <template>
-  <div>
-    <h3 class="text-lg font-medium">
-      Notifications
-    </h3>
-    <p class="text-sm text-muted-foreground">
-      Configure how you receive notifications.
-    </p>
-  </div>
-  <Separator />
-  <form class="space-y-8" @submit="onSubmit">
-    <FormField v-slot="{ componentField }" type="radio" name="type">
-      <FormItem class="space-y-3">
-        <FormLabel>Notify me about...</FormLabel>
-        <FormControl>
-          <RadioGroup
-            class="flex flex-col space-y-1"
-            v-bind="componentField"
-          >
-            <FormItem class="flex items-center space-x-3 space-y-0">
-              <FormControl>
-                <RadioGroupItem value="all" />
-              </FormControl>
-              <FormLabel class="font-normal">
-                All new messages
-              </FormLabel>
-            </FormItem>
-            <FormItem class="flex items-center space-x-3 space-y-0">
-              <FormControl>
-                <RadioGroupItem value="mentions" />
-              </FormControl>
-              <FormLabel class="font-normal">
-                Direct messages and mentions
-              </FormLabel>
-            </FormItem>
-            <FormItem class="flex items-center space-x-3 space-y-0">
-              <FormControl>
-                <RadioGroupItem value="none" />
-              </FormControl>
-              <FormLabel class="font-normal">
-                Nothing
-              </FormLabel>
-            </FormItem>
-          </RadioGroup>
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    </FormField>
-
+  <div class="space-y-6">
     <div>
-      <h3 class="mb-4 text-lg font-medium">
-        Email Notifications
+      <h3 class="text-lg font-medium">
+        Notifications
       </h3>
-      <div class="space-y-4">
-        <FormField v-slot="{ handleChange, value }" type="checkbox" name="communication_emails">
-          <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
-            <div class="space-y-0.5">
-              <FormLabel class="text-base">
-                Communication emails
-              </FormLabel>
-              <FormDescription>
-                Receive emails about your account activity.
-              </FormDescription>
-            </div>
-            <FormControl>
-              <Switch
-                :model-value="value"
-                @update:model-value="handleChange"
-              />
-            </FormControl>
-          </FormItem>
-        </FormField>
+      <p class="text-sm text-muted-foreground mt-1">
+        Configure how you receive notifications.
+      </p>
+    </div>
+    <Separator />
+    <form class="space-y-6" @submit="onSubmit">
+      <div>
+        <h3 class="mb-4 text-base font-medium">Email Notifications</h3>
+        <div class="space-y-3">
+          <FormField v-slot="{ value, handleChange }" name="communication_emails">
+            <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div class="space-y-0.5 pr-4">
+                <FormLabel class="text-base">
+                  Communication emails
+                </FormLabel>
+                <FormDescription>
+                  Receive emails about your account activity.
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  :checked="value"
+                  @update:checked="handleChange"
+                />
+              </FormControl>
+            </FormItem>
+          </FormField>
+          
+          <FormField v-slot="{ value, handleChange }" name="marketing_emails">
+            <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div class="space-y-0.5 pr-4">
+                <FormLabel class="text-base">
+                  Marketing emails
+                </FormLabel>
+                <FormDescription>
+                  Receive emails about new products, features, and more.
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  :checked="value"
+                  @update:checked="handleChange"
+                />
+              </FormControl>
+            </FormItem>
+          </FormField>
+          
+          <FormField v-slot="{ value, handleChange }" name="social_emails">
+            <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div class="space-y-0.5 pr-4">
+                <FormLabel class="text-base">
+                  Social emails
+                </FormLabel>
+                <FormDescription>
+                  Receive emails for friend requests, follows, and more.
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  :checked="value"
+                  @update:checked="handleChange"
+                />
+              </FormControl>
+            </FormItem>
+          </FormField>
+          
+          <FormField v-slot="{ value, handleChange }" name="security_emails">
+            <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4 bg-muted/50">
+              <div class="space-y-0.5 pr-4">
+                <FormLabel class="text-base">
+                  Security emails
+                </FormLabel>
+                <FormDescription>
+                  Receive emails about your account security (required).
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  :checked="value"
+                  @update:checked="handleChange"
+                  disabled
+                />
+              </FormControl>
+            </FormItem>
+          </FormField>
+        </div>
+      </div>
 
-        <FormField v-slot="{ handleChange, value }" type="checkbox" name="marketing_emails">
+      <div>
+        <h3 class="mb-4 text-base font-medium">Mobile</h3>
+        <FormField v-slot="{ value, handleChange }" name="mobile_notifications">
           <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
-            <div class="space-y-0.5">
+            <div class="space-y-0.5 pr-4">
               <FormLabel class="text-base">
-                Marketing emails
+                Push notifications
               </FormLabel>
               <FormDescription>
-                Receive emails about new products, features, and more.
+                Receive push notifications on your mobile device.
               </FormDescription>
             </div>
             <FormControl>
               <Switch
-                :model-value="value"
-                @update:model-value="handleChange"
-              />
-            </FormControl>
-          </FormItem>
-        </FormField>
-
-        <FormField v-slot="{ handleChange, value }" type="checkbox" name="social_emails">
-          <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
-            <div class="space-y-0.5">
-              <FormLabel class="text-base">
-                Social emails
-              </FormLabel>
-              <FormDescription>
-                Receive emails for friend requests, follows, and more.
-              </FormDescription>
-            </div>
-            <FormControl>
-              <Switch
-                :model-value="value"
-                @update:model-value="handleChange"
-              />
-            </FormControl>
-          </FormItem>
-        </FormField>
-
-        <FormField v-slot="{ handleChange, value }" type="checkbox" name="security_emails">
-          <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
-            <div class="space-y-0.5">
-              <FormLabel class="text-base">
-                Security emails
-              </FormLabel>
-              <FormDescription>
-                Receive emails about your account activity and security.
-              </FormDescription>
-            </div>
-            <FormControl>
-              <Switch
-                :model-value="value"
-                @update:model-value="handleChange"
+                :checked="value"
+                @update:checked="handleChange"
               />
             </FormControl>
           </FormItem>
         </FormField>
       </div>
-    </div>
 
-    <FormField v-slot="{ handleChange, value }" type="checkbox" name="mobile">
-      <FormItem class="flex flex-row items-start space-x-3 space-y-0">
-        <FormControl>
-          <Checkbox
-            :model-value="value"
-            @update:model-value="handleChange"
-          />
-        </FormControl>
-        <div class="space-y-1 leading-none">
-          <FormLabel>
-            Use different settings for my mobile devices
-          </FormLabel>
-          <FormDescription>
-            You can manage your mobile notifications in the
-            <a href="/examples/forms">
-              mobile settings
-            </a> page.
-          </FormDescription>
-        </div>
-      </FormItem>
-    </FormField>
-
-    <div class="flex justify-start">
-      <Button type="submit">
-        Update notifications
-      </Button>
-    </div>
-  </form>
+      <div class="flex gap-3 pt-4">
+        <Button type="submit" :disabled="loading || settings.loading.value">
+          {{ loading || settings.loading.value ? 'Updating...' : 'Update notifications' }}
+        </Button>
+      </div>
+    </form>
+  </div>
 </template>

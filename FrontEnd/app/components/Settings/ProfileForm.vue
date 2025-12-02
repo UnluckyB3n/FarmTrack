@@ -1,26 +1,18 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
 import { FieldArray, useForm } from 'vee-validate'
-import { h, ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import * as z from 'zod'
 import { cn } from '@/lib/utils'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/form'
 
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '~/components/ui/select'
 import { Separator } from '~/components/ui/separator'
 import { Textarea } from '~/components/ui/textarea'
-import { Sonner } from '~/components/ui/sonner'
 
-const verifiedEmails = ref(['m@example.com', 'm@google.com', 'm@support.com'])
+const settings = useSettings()
+const loading = ref(false)
 
 const profileFormSchema = toTypedSchema(z.object({
   username: z
@@ -32,146 +24,130 @@ const profileFormSchema = toTypedSchema(z.object({
       message: 'Username must not be longer than 30 characters.',
     }),
   email: z
-    .string({
-      required_error: 'Please select an email to display.',
-    })
-    .email(),
-  bio: z.string().max(160, { message: 'Bio must not be longer than 160 characters.' }).min(4, { message: 'Bio must be at least 2 characters.' }),
-  urls: z
-    .array(
-      z.object({
-        value: z.string().url({ message: 'Please enter a valid URL.' }),
-      }),
-    )
-    .optional(),
+    .string()
+    .email({ message: 'Please enter a valid email address.' })
+    .optional()
+    .or(z.literal('')),
+  full_name: z.string().max(100).optional().or(z.literal('')),
+  bio: z.string().max(160, { message: 'Bio must not be longer than 160 characters.' }).optional().or(z.literal('')),
 }))
 
-const { handleSubmit, resetForm } = useForm({
+const { handleSubmit, resetForm, setValues } = useForm({
   validationSchema: profileFormSchema,
   initialValues: {
-    bio: 'I own a computer.',
-    urls: [
-      { value: 'https://shadcn.com' },
-      { value: 'http://twitter.com/shadcn' },
-    ],
+    username: '',
+    email: '',
+    full_name: '',
+    bio: '',
   },
 })
 
-const onSubmit = handleSubmit((values) => {
-  toast({
-    title: 'You submitted the following values:',
-    description: h('pre', { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(values, null, 2))),
-  })
+onMounted(async () => {
+  await settings.loadProfile()
+  if (settings.profile.value) {
+    setValues({
+      username: settings.profile.value.username || '',
+      email: settings.profile.value.email || '',
+      full_name: settings.profile.value.full_name || '',
+      bio: settings.profile.value.bio || '',
+    })
+  }
+})
+
+const onSubmit = handleSubmit(async (values) => {
+  loading.value = true
+  const success = await settings.updateProfile(values)
+  loading.value = false
+  
+  if (success) {
+    // Reload profile to get updated data
+    await settings.loadProfile()
+  }
 })
 </script>
 
 <template>
-  <div>
-    <h3 class="text-lg font-medium">
-      Profile
-    </h3>
-    <p class="text-sm text-muted-foreground">
-      This is how others will see you on the site.
-    </p>
-  </div>
-  <Separator />
-  <form class="space-y-8" @submit="onSubmit">
-    <FormField v-slot="{ componentField }" name="username">
-      <FormItem>
-        <FormLabel>Username</FormLabel>
-        <FormControl>
-          <Input type="text" placeholder="shadcn" v-bind="componentField" />
-        </FormControl>
-        <FormDescription>
-          This is your public display name. It can be your real name or a pseudonym. You can only change this once every 30 days.
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-    </FormField>
-
-    <FormField v-slot="{ componentField }" name="email">
-      <FormItem>
-        <FormLabel>Email</FormLabel>
-
-        <Select v-bind="componentField">
-          <FormControl>
-            <SelectTrigger>
-              <SelectValue placeholder="Select an email" />
-            </SelectTrigger>
-          </FormControl>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem v-for="email in verifiedEmails" :key="email" :value="email">
-                {{ email }}
-              </SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <FormDescription>
-          You can manage verified email addresses in your email settings.
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-    </FormField>
-
-    <FormField v-slot="{ componentField }" name="bio">
-      <FormItem>
-        <FormLabel>Bio</FormLabel>
-        <FormControl>
-          <Textarea placeholder="Tell us a little bit about yourself" v-bind="componentField" />
-        </FormControl>
-        <FormDescription>
-          You can <span>@mention</span> other users and organizations to link to them.
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-    </FormField>
-
+  <div class="space-y-6">
     <div>
-      <FieldArray v-slot="{ fields, push }" name="urls">
-        <div v-for="(field, index) in fields" :key="`urls-${field.key}`">
-          <FormField v-slot="{ componentField }" :name="`urls[${index}].value`">
-            <FormItem>
-              <FormLabel :class="cn(index !== 0 && 'sr-only')">
-                URLs
-              </FormLabel>
-              <FormDescription :class="cn(index !== 0 && 'sr-only')">
-                Add links to your website, blog, or social media profiles.
-              </FormDescription>
-              <div class="relative flex items-center">
-                <FormControl>
-                  <Input type="url" v-bind="componentField" />
-                </FormControl>
-              </div>
-              <FormMessage />
-            </FormItem>
-          </FormField>
-        </div>
+      <h3 class="text-lg font-medium">
+        Profile
+      </h3>
+      <p class="text-sm text-muted-foreground mt-1">
+        This is how others will see you on the site.
+      </p>
+    </div>
+    <Separator />
+    <form class="space-y-6" @submit="onSubmit">
+      <FormField v-slot="{ componentField }" name="username">
+        <FormItem>
+          <FormLabel>Username</FormLabel>
+          <FormControl>
+            <Input type="text" placeholder="shadcn" v-bind="componentField" />
+          </FormControl>
+          <FormDescription>
+            This is your public display name. It can be your real name or a pseudonym.
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+
+      <FormField v-slot="{ componentField }" name="email">
+        <FormItem>
+          <FormLabel>Email</FormLabel>
+          <FormControl>
+            <Input type="email" placeholder="your.email@example.com" v-bind="componentField" />
+          </FormControl>
+          <FormDescription>
+            Your email address for account recovery and notifications.
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+
+      <FormField v-slot="{ componentField }" name="full_name">
+        <FormItem>
+          <FormLabel>Full Name</FormLabel>
+          <FormControl>
+            <Input type="text" placeholder="John Doe" v-bind="componentField" />
+          </FormControl>
+          <FormDescription>
+            Your full name as it should appear on the platform.
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+
+      <FormField v-slot="{ componentField }" name="bio">
+        <FormItem>
+          <FormLabel>Bio</FormLabel>
+          <FormControl>
+            <Textarea 
+              placeholder="Tell us a little bit about yourself" 
+              class="resize-none min-h-[100px]"
+              v-bind="componentField" 
+            />
+          </FormControl>
+          <FormDescription>
+            Brief description for your profile. Maximum 160 characters.
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+
+      <div class="flex gap-3 pt-4">
+        <Button type="submit" :disabled="loading || settings.loading.value">
+          {{ loading || settings.loading.value ? 'Updating...' : 'Update profile' }}
+        </Button>
 
         <Button
           type="button"
           variant="outline"
-          size="sm"
-          class="text-xs w-20 mt-2"
-          @click="push({ value: '' })"
+          @click="resetForm"
+          :disabled="loading || settings.loading.value"
         >
-          Add URL
+          Reset
         </Button>
-      </FieldArray>
-    </div>
-
-    <div class="flex gap-2 justify-start">
-      <Button type="submit">
-        Update profile
-      </Button>
-
-      <Button
-        type="button"
-        variant="outline"
-        @click="resetForm"
-      >
-        Reset form
-      </Button>
-    </div>
-  </form>
+      </div>
+    </form>
+  </div>
 </template>

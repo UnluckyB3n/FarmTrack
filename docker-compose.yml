@@ -3,15 +3,15 @@ version: "3.9"
 services:
   backend:
     build:
-      context: ./backend
+      context: ./BackEnd
       dockerfile: Dockerfile
     container_name: traceability_api
     restart: always
-    env_file: ./backend/.env
+    env_file: ./BackEnd/.env
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - ./BackEnd:/app
       - /app/__pycache__/
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
@@ -19,16 +19,16 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./FrontEnd
       dockerfile: Dockerfile
     container_name: traceability_ui
     restart: always
     ports:
       - "3000:3000"
     environment:
-      - NUXT_PUBLIC_API_URL=http://backend:8000/api/v1
+      - NUXT_PUBLIC_API_URL=http://localhost:8000/api/v1
     volumes:
-      - ./frontend:/app
+      - ./FrontEnd:/app
       - /app/node_modules
     depends_on:
       - backend
